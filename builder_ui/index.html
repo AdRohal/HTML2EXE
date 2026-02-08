@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML to EXE Builder - Professional Application Converter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-section">
+                <img src="./assets/logo.png" alt="App Logo" class="app-logo" onerror="this.style.display='none'">
+            </div>
+            
+            <!-- Search Bar -->
+            <div class="sidebar-search">
+                <input type="text" placeholder="Search projects..." class="search-input">
+            </div>
+            
+            <nav class="nav-menu">
+                <!-- Main Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">MAIN</div>
+                    <button class="nav-item active" data-page="dashboard">
+                        <span class="icon">▭</span>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="nav-item" data-page="build">
+                        <span class="icon">⚙</span>
+                        <span>Build System</span>
+                    </button>
+                    <button class="nav-item" data-page="colors">
+                        <span class="icon">◆</span>
+                        <span>Colors & Theme</span>
+                    </button>
+                </div>
+                
+                <!-- Projects Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">PROJECTS</div>
+                    <button class="nav-item" data-page="projects">
+                        <span class="icon">▦</span>
+                        <span>My Projects</span>
+                    </button>
+                    <button class="nav-item" data-page="existing">
+                        <span class="icon">📁</span>
+                        <span>Existing Project</span>
+                    </button>
+                </div>
+                
+                <!-- BETA Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">BETA</div>
+                    <button class="nav-item" data-page="python-convert">
+                        <span class="icon">🚀</span>
+                        <span>Python to EXE</span>
+                    </button>
+                </div>
+
+                <!-- Settings Section -->
+                <div class="nav-section">
+                    <div class="nav-section-title">SETTINGS</div>
+                    <button class="nav-item" data-page="settings">
+                        <span class="icon">◐</span>
+                        <span>Settings</span>
+                    </button>
+                    <button class="nav-item" onclick="showHelp()">
+                        <span class="icon">ⓘ</span>
+                        <span>Help & Support</span>
+                    </button>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button class="create-project-btn" onclick="goToPage('create')">
+                    <span class="icon">⊕</span>
+                    <span>Create Project</span>
+                </button>
+            </div>
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="app-header">
+                <div class="header-left">
+                    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                    <h2 id="pageTitle">Dashboard</h2>
+                </div>
+                <div class="header-right">
+                    <div class="search-box">
+                        <input type="text" placeholder="Search projects..." id="searchInput">
+                    </div>
+                    <button class="version-btn">v1.0.0</button>
+                    
+                    <!-- Custom Window Controls (Frameless) -->
+                    <div class="window-controls">
+                        <button class="window-control-btn minimize-btn" onclick="minimizeWindow()" title="Minimize">
+                            <span>−</span>
+                        </button>
+                        <button class="window-control-btn maximize-btn" onclick="maximizeWindow()" title="Maximize">
+                            <span>□</span>
+                        </button>
+                        <button class="window-control-btn close-btn" onclick="closeWindow()" title="Close">
+                            <span>✕</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Pages Container -->
+            <div class="pages-container">
+                
+                <!-- Dashboard Page -->
+                <div class="page active" id="dashboard-page">
+                    <div class="page-content">
+                        <h2>Welcome to HTML to EXE Builder</h2>
+                        <p class="subtitle">Convert your web projects to standalone Windows applications</p>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number" id="projectCount">0</div>
+                                <div class="stat-label">Projects</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" id="builtCount">0</div>
+                                <div class="stat-label">Built Apps</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">~180MB</div>
+                                <div class="stat-label">Avg Size</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">3.8+</div>
+                                <div class="stat-label">Python</div>
+                            </div>
+                        </div>
+                        
+                        <div class="quick-start">
+                            <h3>Quick Start</h3>
+                            <div class="steps">
+                                <div class="step">
+                                    <div class="step-number">1</div>
+                                    <div class="step-content">
+                                        <h4>Create or Select Project</h4>
+                                        <p>Start with a new project or open an existing one</p>
+                                    </div>
+                                    <button class="btn-primary" onclick="goToPage('create')">Create Project</button>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">2</div>
+                                    <div class="step-content">
+                                        <h4>Edit Your App</h4>
+                                        <p>Customize HTML, CSS, and JavaScript files</p>
+                                    </div>
+                                    <button class="btn-primary" onclick="goToPage('projects')">View Projects</button>
+                                </div>
+                                <div class="step">
+                                    <div class="step-number">3</div>
+                                    <div class="step-content">
+                                        <h4>Test & Build</h4>
+                                        <p>Test your app, then convert it to EXE</p>
+                                    </div>
+                                    <button class="btn-primary" onclick="goToPage('build')">Build Now</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="features">
+                            <h3>Key Features</h3>
+                            <div class="feature-list">
+                                <div class="feature-item">
+                                    <span class="feature-icon">✅</span>
+                                    <span>Single standalone .exe file</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-icon">✅</span>
+                                    <span>No dependencies for end users</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-icon">✅</span>
+                                    <span>Full HTML5, CSS3, JavaScript support</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-icon">✅</span>
+                                    <span>Custom icons and app names</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-icon">✅</span>
+                                    <span>Built-in local HTTP server</span>
+                                </div>
+                                <div class="feature-item">
+                                    <span class="feature-icon">✅</span>
+                                    <span>Professional desktop GUI</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Projects Page -->
+                <div class="page" id="projects-page">
+                    <div class="page-content">
+                        <div class="page-header">
+                            <h2>Your Projects</h2>
+                            <button class="btn-primary" onclick="goToPage('existing')">+ New Project</button>
+                        </div>
+                        
+                        <div class="filter-bar">
+                            <button class="filter-btn active" onclick="filterProjects('all')">All</button>
+                            <button class="filter-btn" onclick="filterProjects('recent')">Recent</button>
+                            <button class="filter-btn" onclick="filterProjects('built')">Built</button>
+                        </div>
+                        
+                        <div id="projectsList" class="projects-grid">
+                            <div class="empty-state">
+                                <div class="empty-icon">▦</div>
+                                <h3>No projects yet</h3>
+                                <p>Create your first project to get started</p>
+                                <button class="btn-primary" onclick="goToPage('create')">Create Project</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Create Project Page -->
+                <div class="page" id="create-page">
+                    <div class="page-content">
+                        <h2>Create New Project</h2>
+                        
+                        <!-- Import from Folder Section -->
+                        <div class="import-section">
+                            <h3>▭ Import from Folder</h3>
+                            <p>Or start with your own web project</p>
+                            <div class="import-controls">
+                                <input type="text" id="folderPath" placeholder="Select a folder containing your project..." readonly>
+                                <button class="btn-primary" onclick="openFolderBrowser()">Browse Folder</button>
+                            </div>
+                            <div id="folderScanResult" class="folder-scan-result" style="display: none;">
+                                <div class="scan-success">
+                                    <span class="scan-icon">✓</span>
+                                    <div>
+                                        <strong id="foundFileName">index.html</strong>
+                                        <small id="foundFileCount">Found 5 files</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Project Analysis Section -->
+                                <div class="analysis-section">
+                                    <h4>📊 Project Analysis</h4>
+                                    
+                                    <div class="analysis-item">
+                                        <strong>Project Type:</strong>
+                                        <span id="projectTypeAnalysis">Analyzing...</span>
+                                    </div>
+                                    
+                                    <div class="analysis-item" id="frameworkSection" style="display: none;">
+                                        <strong>Frameworks:</strong>
+                                        <div id="frameworksList" class="tag-list"></div>
+                                    </div>
+                                    
+                                    <div class="analysis-item" id="technologiesSection" style="display: none;">
+                                        <strong>Technologies:</strong>
+                                        <div id="technologiesList" class="tag-list"></div>
+                                    </div>
+                                    
+                                    <div class="analysis-item" id="versionsSection" style="display: none;">
+                                        <strong>Versions:</strong>
+                                        <div id="versionsList" class="versions-list"></div>
+                                    </div>
+                                    
+                                    <div class="analysis-item" id="dependenciesSection" style="display: none;">
+                                        <strong>Dependencies Found:</strong>
+                                        <small id="dependenciesCount"></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border);">
+                        
+                        <div class="create-form">
+                            <div class="form-group">
+                                <label for="projectName">Project Name *</label>
+                                <input type="text" id="projectName" placeholder="My Awesome App" required>
+                                <small>Use alphanumeric characters, hyphens, and underscores</small>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="projectAuthor">Author</label>
+                                    <input type="text" id="projectAuthor" placeholder="Your Name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="projectVersion">Version</label>
+                                    <input type="text" id="projectVersion" value="1.0.0">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="projectDescription">Description</label>
+                                <textarea id="projectDescription" placeholder="Describe your application..." rows="3"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Template</label>
+                                <div class="template-grid">
+                                    <div class="template-card active" onclick="selectTemplate('blank')">
+                                        <div class="template-icon">▢</div>
+                                        <div class="template-name">Blank</div>
+                                        <div class="template-desc">Start from scratch</div>
+                                    </div>
+                                    <div class="template-card" onclick="selectTemplate('modern')">
+                                        <div class="template-icon">◆</div>
+                                        <div class="template-name">Modern UI</div>
+                                        <div class="template-desc">Beautiful design</div>
+                                    </div>
+                                    <div class="template-card" onclick="selectTemplate('dashboard')">
+                                        <div class="template-icon">▣</div>
+                                        <div class="template-name">Dashboard</div>
+                                        <div class="template-desc">Data focused</div>
+                                    </div>
+                                    <div class="template-card" onclick="selectTemplate('calculator')">
+                                        <div class="template-icon">◯</div>
+                                        <div class="template-name">Calculator</div>
+                                        <div class="template-desc">Functional app</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button class="btn-primary" onclick="createProject()">Create Project</button>
+                                <button class="btn-secondary" onclick="goToPage('dashboard')">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Existing Project Page -->
+                <div class="page" id="existing-page">
+                    <div class="page-content">
+                        <div class="page-header">
+                            <div>
+                                <h2>Existing Project</h2>
+                                <p class="subtitle">Import a folder and register it as a project</p>
+                            </div>
+                            <button class="btn-secondary" onclick="goToPage('projects')">View My Projects</button>
+                        </div>
+
+                        <div class="existing-layout">
+                            <div class="existing-card">
+                                <h3>📁 Import Project Folder</h3>
+                                <p>Select the root folder of an existing web project (HTML/CSS/JS).</p>
+                                <div class="import-controls">
+                                    <input type="text" id="existingFolderPath" placeholder="Select a folder containing your project..." readonly>
+                                    <button class="btn-primary" onclick="openExistingFolderBrowser()">Browse Folder</button>
+                                </div>
+                                <div id="existingScanResult" class="folder-scan-result" style="display: none;">
+                                    <div class="scan-success">
+                                        <span class="scan-icon">✓</span>
+                                        <div>
+                                            <strong id="existingFoundFileName">index.html</strong>
+                                            <small id="existingFoundFileCount">Found 0 files</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="analysis-section">
+                                        <h4>📊 Project Analysis</h4>
+
+                                        <div class="analysis-item">
+                                            <strong>Project Type:</strong>
+                                            <span id="existingProjectTypeAnalysis">Analyzing...</span>
+                                        </div>
+
+                                        <div class="analysis-item" id="existingFrameworkSection" style="display: none;">
+                                            <strong>Frameworks:</strong>
+                                            <div id="existingFrameworksList" class="tag-list"></div>
+                                        </div>
+
+                                        <div class="analysis-item" id="existingTechnologiesSection" style="display: none;">
+                                            <strong>Technologies:</strong>
+                                            <div id="existingTechnologiesList" class="tag-list"></div>
+                                        </div>
+
+                                        <div class="analysis-item" id="existingVersionsSection" style="display: none;">
+                                            <strong>Versions:</strong>
+                                            <div id="existingVersionsList" class="versions-list"></div>
+                                        </div>
+
+                                        <div class="analysis-item" id="existingDependenciesSection" style="display: none;">
+                                            <strong>Dependencies Found:</strong>
+                                            <small id="existingDependenciesCount"></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="existing-card">
+                                <h3>Project Details</h3>
+                                <div class="existing-form">
+                                    <div class="form-group">
+                                        <label for="existingProjectName">Project Name *</label>
+                                        <input type="text" id="existingProjectName" placeholder="My Existing App" required>
+                                        <small>Use alphanumeric characters, hyphens, and underscores</small>
+                                    </div>
+
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="existingProjectAuthor">Author</label>
+                                            <input type="text" id="existingProjectAuthor" placeholder="Your Name">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="existingProjectVersion">Version</label>
+                                            <input type="text" id="existingProjectVersion" value="1.0.0">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="existingProjectDescription">Description</label>
+                                        <textarea id="existingProjectDescription" placeholder="Describe your application..." rows="3"></textarea>
+                                    </div>
+
+                                    <div class="form-actions">
+                                        <button class="btn-primary" onclick="createExistingProject()">Add Existing Project</button>
+                                        <button class="btn-secondary" onclick="goToPage('dashboard')">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Build Page -->
+                <div class="page" id="build-page">
+                    <div class="page-content">
+                        <h2>Build Your App</h2>
+                        
+                        <div class="build-form">
+                            <div class="form-group">
+                                <label for="buildProject">Select Project *</label>
+                                <select id="buildProject" required>
+                                    <option value="">Choose a project...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="buildName">Executable Name</label>
+                                    <input type="text" id="buildName" placeholder="MyApp">
+                                    <small>The .exe filename (will be auto-filled from project)</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="buildIcon">Custom Icon (Optional)</label>
+                                    <input type="file" id="buildIcon" accept=".ico,.png">
+                                    <small>PNG or ICO format (PNG will be converted)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="build-options">
+                                <h3>Build Options</h3>
+                                <label class="checkbox">
+                                    <input type="checkbox" id="consoleMode" checked>
+                                    <span>Hide console window (recommended)</span>
+                                </label>
+                                <label class="checkbox">
+                                    <input type="checkbox" id="singleFile" checked>
+                                    <span>Single file (one .exe instead of folder)</span>
+                                </label>
+                                <label class="checkbox">
+                                    <input type="checkbox" id="optimizeSize">
+                                    <span>Optimize size (slower build)</span>
+                                </label>
+                                <label class="checkbox">
+                                    <input type="checkbox" id="debug">
+                                    <span>Debug mode (show console)</span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button class="btn-primary btn-large" onclick="buildProject()">
+                                    ⚙️ Start Building
+                                </button>
+                                <button class="btn-secondary" onclick="testProject()">
+                                    🧪 Test Project First
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Build Progress -->
+                        <div id="buildProgressSection" class="build-progress" style="display: none;">
+                            <h3>Build Status</h3>
+                            <div class="progress-bar">
+                                <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+                            </div>
+                            <p id="buildStatus">Initializing build...</p>
+                            <div id="buildLog" class="build-log"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Color Panel Page -->
+                <div class="page" id="colors-page">
+                    <div class="page-content">
+                        <h2>Color Palette</h2>
+                        <p class="subtitle">Explore and manage colors for your projects</p>
+                        
+                        <div class="color-controls">
+                            <div class="color-picker-wrapper">
+                                <label for="colorPicker">Pick a color:</label>
+                                <input type="color" id="colorPicker" value="#667eea">
+                                <span class="color-hex-display" id="colorHexDisplay">#667EEA</span>
+                            </div>
+                            <input type="text" id="colorNameInput" placeholder="Color name (optional)" maxlength="30">
+                            <button class="btn-primary" onclick="addCustomColor()">Add Color</button>
+                        </div>
+                        
+                        <div class="color-grid" id="colorGrid">
+                            <!-- Colors will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Settings Page -->
+                <div class="page" id="settings-page">
+                    <div class="page-content">
+                        <h2>Settings</h2>
+                        
+                        <div class="settings-section">
+                            <h3>Server Settings</h3>
+                            <div class="form-group">
+                                <label for="serverPort">Local Server Port</label>
+                                <input type="number" id="serverPort" value="8000" min="1000" max="65535">
+                                <small>Port used by the local HTTP server</small>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h3>Window Settings</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="windowWidth">Default Window Width</label>
+                                    <input type="number" id="windowWidth" value="1024" min="400">
+                                </div>
+                                <div class="form-group">
+                                    <label for="windowHeight">Default Window Height</label>
+                                    <input type="number" id="windowHeight" value="768" min="300">
+                                </div>
+                            </div>
+                            <label class="checkbox">
+                                <input type="checkbox" id="windowResizable" checked>
+                                <span>Allow users to resize window</span>
+                            </label>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h3>Build Settings</h3>
+                            <label class="checkbox">
+                                <input type="checkbox" id="autoMinify" checked>
+                                <span>Auto-minify CSS and JavaScript</span>
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" id="includeSourceMaps">
+                                <span>Include source maps (for debugging)</span>
+                            </label>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h3>Advanced</h3>
+                            <button class="btn-secondary" onclick="cleanCache()">🗑️ Clean Cache</button>
+                            <button class="btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
+                            <button class="btn-secondary" onclick="openProjectsFolder()">Open Projects Folder</button>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Python to EXE Converter Page -->
+                <div class="page" id="python-convert-page">
+                    <div class="page-content">
+                        <div class="page-header">
+                            <div>
+                                <h2>🚀 Python to EXE Converter <span class="beta-badge">BETA</span></h2>
+                                <p class="subtitle">Convert Python scripts and projects to standalone Windows executables</p>
+                            </div>
+                            <button class="btn-secondary" onclick="goToPage('settings')">Back to Settings</button>
+                        </div>
+
+                        <div class="python-converter-section">
+                            <h3>📁 Select Python Project</h3>
+                            <p>Choose a Python file or project folder to convert to EXE</p>
+                            <div class="import-controls">
+                                <input type="text" id="pythonProjectPath" placeholder="Select your Python project..." readonly>
+                                <button class="btn-primary" onclick="browsePythonProject()">Browse Project</button>
+                            </div>
+
+                            <div id="pythonProjectInfo" style="display: none; margin-top: 20px;">
+                                <div class="scan-success">
+                                    <span class="scan-icon">✓</span>
+                                    <div>
+                                        <strong id="pythonFileName">main.py</strong>
+                                        <small id="pythonFileInfo">Python project detected</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="python-converter-section">
+                            <h3>⚙️ Conversion Settings</h3>
+                            <div class="form-group">
+                                <label for="pythonExeName">Executable Name</label>
+                                <input type="text" id="pythonExeName" placeholder="MyApp" value="MyApp">
+                                <small>The name for your .exe file</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="pythonExeIcon">Application Icon (Optional)</label>
+                                <input type="file" id="pythonExeIcon" accept=".ico,.png">
+                                <small>PNG or ICO format (PNG will be converted)</small>
+                            </div>
+
+                            <div class="python-options">
+                                <label class="checkbox">
+                                    <input type="checkbox" id="pythonHideConsole" checked>
+                                    <span>Hide console window</span>
+                                </label>
+                                <label class="checkbox">
+                                    <input type="checkbox" id="pythonSingleFile" checked>
+                                    <span>Create single .exe file</span>
+                                </label>
+                                <label class="checkbox">
+                                    <input type="checkbox" id="pythonOptimize">
+                                    <span>Optimize for size (slower build)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="python-converter-section">
+                            <h3>⚠️ Requirements</h3>
+                            <ul class="requirements-list">
+                                <li>Python 3.8 or higher installed on your system</li>
+                                <li>PyInstaller will be used for compilation</li>
+                                <li>Estimated build time: 2-5 minutes depending on project size</li>
+                                <li>Some libraries may require additional configuration</li>
+                            </ul>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="btn-primary btn-large" onclick="convertPythonToExe()">
+                                🔨 Start Conversion
+                            </button>
+                            <button class="btn-secondary" onclick="goToPage('settings')">Cancel</button>
+                        </div>
+
+                        <!-- Conversion Progress -->
+                        <div id="pythonConvertProgress" class="build-progress" style="display: none;">
+                            <h3>Conversion Status</h3>
+                            <div class="progress-bar">
+                                <div id="pythonProgressFill" class="progress-fill" style="width: 0%"></div>
+                            </div>
+                            <p id="pythonConvertStatus">Initializing conversion...</p>
+                            <div id="pythonConvertLog" class="build-log"></div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modal Dialogs -->
+    <div id="helpModal" class="modal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2>Help & Documentation</h2>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <h3>Getting Started</h3>
+                <p>1. Create a new project or select an existing one</p>
+                <p>2. Edit your HTML, CSS, and JavaScript files</p>
+                <p>3. Test your app with the "Test" button</p>
+                <p>4. Build to EXE when ready</p>
+                
+                <h3>Project Structure</h3>
+                <pre>my_project/
+├── index.html
+├── style.css
+├── script.js
+├── project.json
+└── assets/</pre>
+
+                <h3>Useful Tips</h3>
+                <ul>
+                    <li>Always test before building</li>
+                    <li>Keep project files organized</li>
+                    <li>Use relative paths for assets</li>
+                    <li>Avoid external API dependencies</li>
+                </ul>
+                
+                <h3>Resources</h3>
+                <p><a href="#">PyWebView Documentation</a></p>
+                <p><a href="#">PyInstaller Documentation</a></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" onclick="closeModal()">Done</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="api.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
+.Python
+env/
+venv/
+.venv/
+ENV/
+develop-eggs/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Build artifacts
+*.exe
+*.spec
+.pyinstaller/
+build/
+dist/
+*.tgz
+
+# Project-specific
+projects/
+sample_project/
+temp/
+tmp/
+*.bak
+*.tmp
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Node (if applicable)
+node_modules/
+npm-debug.log
+
+# Cache files
+.cache/
+*.cache
+
