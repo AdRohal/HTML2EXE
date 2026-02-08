@@ -617,7 +617,7 @@ if __name__ == "__main__":
                     self.send_json({'error': f'Window close error: {str(e)}'}, 500)
             
             elif endpoint == 'convert-python-to-exe' and method == 'POST':
-                """Convert Python script/project to EXE (Beta)"""
+                """Convert Python script/project to EXE"""
                 if body:
                     try:
                         data = json.loads(body)
@@ -629,7 +629,7 @@ if __name__ == "__main__":
                         icon_data = data.get('iconData', '')
                         
                         print(f"\n{'='*60}")
-                        print(f"🔨 PYTHON TO EXE CONVERSION (BETA)")
+                        print(f"🔨 PYTHON TO EXE CONVERSION")
                         print(f"{'='*60}")
                         print(f"Python Project: {python_path}")
                         print(f"EXE Name: {exe_name}")
@@ -641,29 +641,175 @@ if __name__ == "__main__":
                             self.send_json({'error': f'Python project path not found: {python_path}'}, 404)
                             return
                         
-                        # For now, return a placeholder response
-                        # Full implementation would include:
-                        # 1. Analyzing Python dependencies
-                        # 2. Creating PyInstaller spec file
-                        # 3. Running PyInstaller with proper flags
-                        # 4. Handling icon conversion if needed
+                        python_path = os.path.abspath(python_path)
                         
-                        downloads_dir = os.path.join(os.path.expanduser('~'), 'Downloads')
-                        exe_path = os.path.join(downloads_dir, f'{exe_name}.exe')
+                        # Find entry point (main.py, app.py, or first .py file)
+                        entry_point = None
+                        py_files = []
                         
-                        print(f"✓ Output path: {exe_path}")
-                        print(f"\n{'='*60}")
-                        print(f"📝 NOTE: Full Python to EXE conversion is coming in next update")
-                        print(f"{'='*60}\n")
+                        for file in os.listdir(python_path):
+                            if file.endswith('.py'):
+                                py_files.append(file)
+                                if file in ['main.py', 'app.py', 'run.py']:
+                                    entry_point = file
                         
-                        self.send_json({
-                            'success': True,
-                            'message': f'Python project conversion prepared (Full conversion coming soon)',
-                            'exePath': exe_path
-                        })
+                        # If no standard entry point found, use first Python file
+                        if not entry_point and py_files:
+                            entry_point = py_files[0]
+                        
+                        if not entry_point:
+                            self.send_json({
+                                'error': 'No Python (.py) files found in the project folder. Please ensure your project has a main.py, app.py, or other Python file.'
+                            }, 400)
+                            return
+                        
+                        entry_point_path = os.path.join(python_path, entry_point)
+                        print(f"✓ Entry point: {entry_point}")
+                        
+                        # Check for requirements.txt
+                        requirements_path = os.path.join(python_path, 'requirements.txt')
+                        has_requirements = os.path.exists(requirements_path)
+                        if has_requirements:
+                            print(f"✓ Dependencies file found: requirements.txt")
+                        
+                        # Create build directory
+                        user_home = os.path.expanduser('~')
+                        build_base_dir = os.path.join(user_home, 'Documents', 'HTMLToExe_PythonBuilds')
+                        build_dir = os.path.join(build_base_dir, exe_name)
+                        output_dir = os.path.join(user_home, 'Downloads')
+                        
+                        os.makedirs(build_dir, exist_ok=True)
+                        os.makedirs(os.path.join(build_dir, 'build'), exist_ok=True)
+                        
+                        print(f"\n📁 Build directory: {build_dir}")
+                        
+                        # Handle icon if provided
+                        final_icon_path = None
+                        if data.get('iconData'):
+                            try:
+                                icon_data_uri = data.get('iconData', '')
+                                if icon_data_uri.startswith('data:'):
+                                    base64_content = icon_data_uri.split(',')[1]
+                                    icon_binary = base64.b64decode(base64_content)
+                                    
+                                    mime_type = icon_data_uri.split(';')[0].split(':')[1]
+                                    if 'png' in mime_type:
+                                        icon_ext = 'png'
+                                    else:
+                                        icon_ext = 'ico'
+                                    
+                                    temp_icon_path = os.path.join(build_dir, f'temp_icon.{icon_ext}')
+                                    with open(temp_icon_path, 'wb') as f:
+                                        f.write(icon_binary)
+                                        f.flush()
+                                        os.fsync(f.fileno())
+                                    
+                                    print(f"📥 Icon file received: {icon_ext.upper()}")
+                                    
+                                    # Convert PNG to ICO if necessary
+                                    if icon_ext == 'png' and HAS_PILLOW:
+                                        ico_path = os.path.join(build_dir, f'{exe_name}.ico')
+                                        try:
+                                            print(f"🎨 Converting PNG to ICO format...")
+                                            img = Image.open(temp_icon_path)
+                                            if img.size[0] < 256 or img.size[1] < 256:
+                                                img = img.resize((256, 256), Image.Resampling.LANCZOS)
+                                            if img.mode in ('RGBA', 'LA', 'P'):
+                                                rgb_img = Image.new('RGB', img.size, (255, 255, 255))
+                                                if img.mode == 'RGBA':
+                                                    rgb_img.paste(img, mask=img.split()[-1])
+                                                else:
+                                                    rgb_img.paste(img)
+                                                rgb_img.save(ico_path, 'ICO')
+                                            else:
+                                                img.save(ico_path, 'ICO')
+                                            final_icon_path = ico_path
+                                            print(f"✅ ICO created: {ico_path}")
+                                            os.remove(temp_icon_path)
+                                        except Exception as e:
+                                            print(f"⚠️  Icon conversion failed: {e}")
+                                            final_icon_path = temp_icon_path
+                                    else:
+                                        final_icon_path = temp_icon_path
+                            except Exception as e:
+                                print(f"⚠️  Icon processing failed: {e}")
+                        
+                        print(f"\n🔧 Preparing PyInstaller command...")
+                        
+                        # Create PyInstaller command
+                        cmd = [
+                            'pyinstaller',
+                            '--onefile' if single_file else '--onedir',
+                        ]
+                        
+                        if hide_console:
+                            cmd.append('--windowed')
+                        
+                        if optimize:
+                            cmd.extend(['--optimize', '2'])
+                        
+                        cmd.extend([
+                            '--noupx',
+                            '-y',
+                            f'--name={exe_name}',
+                            f'--distpath={output_dir}',
+                            f'--workpath={os.path.join(build_dir, "build")}',
+                            f'--specpath={build_dir}',
+                        ])
+                        
+                        # Add icon if available
+                        if final_icon_path and os.path.exists(final_icon_path):
+                            abs_icon_path = os.path.abspath(final_icon_path)
+                            print(f"📌 Icon: {abs_icon_path}")
+                            cmd.append(f'--icon={abs_icon_path}')
+                        
+                        cmd.append(entry_point_path)
+                        
+                        print(f"\n⚙️  Running PyInstaller...")
+                        print(f"Command: {' '.join(cmd)}\n")
+                        
+                        # Run PyInstaller
+                        result = subprocess.run(cmd, capture_output=True, text=True, cwd=python_path)
+                        
+                        print(f"PyInstaller output:\n{result.stdout}")
+                        
+                        if result.stderr and result.stderr.strip():
+                            print(f"PyInstaller warnings:\n{result.stderr}")
+                        
+                        if result.returncode != 0:
+                            print(f"\n❌ Build failed!")
+                            self.send_json({
+                                'error': f'PyInstaller build failed: {result.stderr}'
+                            }, 500)
+                            return
+                        
+                        exe_path = os.path.join(output_dir, f'{exe_name}.exe')
+                        
+                        if os.path.exists(exe_path):
+                            exe_size = os.path.getsize(exe_path) / (1024*1024)
+                            print(f"\n✨ BUILD SUCCESSFUL!")
+                            print(f"EXE File: {exe_path}")
+                            print(f"Size: {exe_size:.2f} MB")
+                            print(f"{'='*60}\n")
+                            
+                            self.send_json({
+                                'success': True,
+                                'message': f'Python to EXE conversion successful!',
+                                'exePath': exe_path,
+                                'exeName': f'{exe_name}.exe',
+                                'size': f'{exe_size:.2f} MB'
+                            })
+                        else:
+                            print(f"❌ EXE was not created at expected location!")
+                            self.send_json({
+                                'error': 'EXE was not created. Check the build output above for errors.'
+                            }, 500)
+                    
                     except Exception as e:
-                        print(f"❌ Conversion error: {str(e)}")
-                        self.send_json({'error': f'Python conversion failed: {str(e)}'}, 500)
+                        print(f"\n❌ BUILD ERROR: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        self.send_json({'error': f'Build error: {str(e)}'}, 500)
                 else:
                     self.send_json({'error': 'No project data provided'}, 400)
             

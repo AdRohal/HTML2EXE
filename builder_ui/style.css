@@ -101,34 +101,6 @@ html, body {
     letter-spacing: 0.5px;
 }
 
-/* Search Bar */
-.sidebar-search {
-    padding: 15px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.search-input {
-    width: 100%;
-    padding: 10px 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    color: white;
-    font-size: 13px;
-    transition: all 0.3s ease;
-}
-
-.search-input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.search-input:focus {
-    outline: none;
-    background: rgba(255, 255, 255, 0.15);
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(222, 26, 26, 0.2);
-}
-
 .nav-item {
     display: flex;
     align-items: center;
@@ -252,25 +224,6 @@ html, body {
     display: flex;
     align-items: center;
     gap: 20px;
-}
-
-.search-box {
-    position: relative;
-}
-
-.search-box input {
-    padding: 10px 15px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    width: 300px;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.search-box input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(222, 26, 26, 0.1);
 }
 
 .version-btn {
@@ -1583,10 +1536,6 @@ html, body {
         display: none;
     }
     
-    .search-box input {
-        width: 200px;
-    }
-    
     .pages-container {
         padding: 20px;
     }
@@ -1633,11 +1582,81 @@ html, body {
         display: block;
     }
     
-    .search-box {
-        display: none;
-    }
-    
     .header-right {
         justify-content: flex-end;
     }
+}
+
+/* ============ Loading Overlay ============ */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(26, 26, 46, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.loading-overlay.hidden {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+.loading-container {
+    text-align: center;
+    color: white;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 30px;
+    border: 4px solid rgba(222, 26, 26, 0.2);
+    border-top: 4px solid #DE1A1A;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+#loadingTitle {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: white;
+}
+
+#loadingMessage {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
 }

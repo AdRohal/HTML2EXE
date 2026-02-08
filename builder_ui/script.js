@@ -176,6 +176,7 @@ function loadProjects() {
         .then(data => {
             if (data.success && data.projects.length > 0) {
                 projects = data.projects;
+                updateStats();
                 
                 projectsList.innerHTML = projects.map(project => `
                     <div class="project-card" onclick="selectProject('${project.id}')">
@@ -195,6 +196,8 @@ function loadProjects() {
                     </div>
                 `).join('');
             } else {
+                projects = [];
+                updateStats();
                 projectsList.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">📁</div>
@@ -207,6 +210,8 @@ function loadProjects() {
         })
         .catch(error => {
             console.error('Error loading projects:', error);
+            projects = [];
+            updateStats();
             projectsList.innerHTML = `
                 <div class="empty-state error">
                     <div class="empty-icon">⚠️</div>
@@ -546,6 +551,13 @@ function buildProject() {
     const exeName = document.getElementById('buildName').value || project.name;
     const iconInput = document.getElementById('buildIcon');
     
+    // Show loading overlay
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    document.getElementById('loadingTitle').textContent = `Building ${exeName}...`;
+    document.getElementById('loadingMessage').textContent = 'Converting HTML/CSS/JavaScript to EXE. This may take a few minutes.';
+    loadingOverlay.style.display = 'flex';
+    loadingOverlay.classList.remove('hidden');
+    
     // Show progress
     document.getElementById('buildProgressSection').style.display = 'block';
     document.getElementById('buildStatus').textContent = 'Initializing build...';
@@ -586,8 +598,13 @@ function executeBuild(buildData) {
         },
         body: JSON.stringify(buildData)
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(response => {
+        // Always parse JSON, regardless of status code
+        return response.json().then(data => {
+            return { status: response.status, data: data };
+        });
+    })
+    .then(({ status, data }) => {
         document.getElementById('progressFill').style.width = '100%';
         
         if (data.success) {
@@ -604,20 +621,38 @@ function executeBuild(buildData) {
                 updateStats();
             }
             
+            // Hide loading overlay
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.add('hidden');
             setTimeout(() => {
+                loadingOverlay.style.display = 'none';
                 alert(`✓ Successfully built!\n\nExecutable: ${data.exeName}\n\nLocation: ${data.exePath}\n\nYou can now distribute this file to others!`);
-            }, 500);
+            }, 300);
         } else {
             document.getElementById('buildStatus').textContent = '❌ Build failed!';
             document.getElementById('buildLog').textContent += `\n❌ Error: ${data.error}`;
-            alert(`Build error: ${data.error}`);
+            
+            // Hide loading overlay
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.add('hidden');
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+                alert(`Build error: ${data.error}`);
+            }, 300);
         }
     })
     .catch(error => {
         console.error('Error building project:', error);
         document.getElementById('buildStatus').textContent = '❌ Build failed!';
         document.getElementById('buildLog').textContent += `\n❌ Error: ${error.message}`;
-        alert(`Build error: ${error.message}`);
+        
+        // Hide loading overlay
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        loadingOverlay.classList.add('hidden');
+        setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+            alert(`Build error: ${error.message}`);
+        }, 300);
     });
 }
 
@@ -725,8 +760,42 @@ function cleanCache() {
 }
 
 function browsePythonProject() {
-    // In a real app, this would call the backend to browse for a Python project
-    alert('Select your Python project folder (must contain main.py or setup.py)');
+    // Show loading state
+    const pythonPathInput = document.getElementById('pythonProjectPath');
+    pythonPathInput.value = 'Opening folder browser...';
+    
+    // Call API to open folder browser dialog
+    fetch('/api/browse-folder', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.folderPath) {
+            // Set the selected path
+            pythonPathInput.value = data.folderPath;
+            
+            // Show project info
+            document.getElementById('pythonProjectInfo').style.display = 'block';
+            document.getElementById('pythonFileName').textContent = data.folderPath.split('\\').pop() || 'Python Project';
+            document.getElementById('pythonFileInfo').textContent = 'Python project folder selected';
+        } else if (data.cancelled) {
+            pythonPathInput.value = '';
+            document.getElementById('pythonProjectInfo').style.display = 'none';
+        } else {
+            alert(data.error || 'Failed to open folder browser');
+            pythonPathInput.value = '';
+            document.getElementById('pythonProjectInfo').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Error opening folder browser:', error);
+        alert('Error opening folder browser: ' + error.message);
+        pythonPathInput.value = '';
+        document.getElementById('pythonProjectInfo').style.display = 'none';
+    });
 }
 
 function convertPythonToExe() {
@@ -742,6 +811,13 @@ function convertPythonToExe() {
     const singleFile = document.getElementById('pythonSingleFile').checked;
     const optimize = document.getElementById('pythonOptimize').checked;
     const iconFile = document.getElementById('pythonExeIcon').files[0];
+    
+    // Show loading overlay
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    document.getElementById('loadingTitle').textContent = `Converting ${exeName}...`;
+    document.getElementById('loadingMessage').textContent = 'Converting Python project to EXE. This may take several minutes depending on your project size.';
+    loadingOverlay.style.display = 'flex';
+    loadingOverlay.classList.remove('hidden');
     
     // Show progress section
     document.getElementById('pythonConvertProgress').style.display = 'block';
@@ -760,7 +836,7 @@ function convertPythonToExe() {
 }
 
 function executeConversion(pythonPath, exeName, hideConsole, singleFile, optimize, iconData) {
-    updatePythonConvertStatus('Preparing Python project for conversion...');
+    updatePythonConvertStatus('Analyzing Python project...');
     
     const conversionData = {
         pythonPath: pythonPath,
@@ -778,26 +854,68 @@ function executeConversion(pythonPath, exeName, hideConsole, singleFile, optimiz
         },
         body: JSON.stringify(conversionData)
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(response => {
+        // Always parse JSON, regardless of status code
+        return response.json().then(data => {
+            return { status: response.status, data: data };
+        });
+    })
+    .then(({ status, data }) => {
+        // Check if conversion was successful
         if (data.success) {
-            updatePythonConvertStatus('✓ Conversion completed successfully!');
-            addPythonConvertLog('EXE created: ' + data.exePath);
+            updatePythonConvertStatus('✓ Python to EXE conversion completed!');
+            addPythonConvertLog(`✅ Build successful!`);
+            addPythonConvertLog(`EXE Location: ${data.exePath}`);
+            addPythonConvertLog(`File Size: ${data.size}`);
+            
+            // Update progress to 100%
+            document.getElementById('pythonProgressFill').style.width = '100%';
+            
+            // Hide loading overlay
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.add('hidden');
             setTimeout(() => {
-                alert('✓ Python to EXE conversion completed!\n\nYour executable is ready in:\n' + data.exePath);
+                loadingOverlay.style.display = 'none';
+                alert(`✓ Python to EXE Conversion Successful!\n\nExecutable: ${data.exeName}\n\nLocation: ${data.exePath}\n\nSize: ${data.size}\n\nYou can now distribute this file to users!`);
+                
+                // Reset form
                 document.getElementById('pythonConvertProgress').style.display = 'none';
                 document.getElementById('pythonProjectPath').value = '';
                 document.getElementById('pythonExeName').value = 'MyApp';
-            }, 1000);
+                document.getElementById('pythonHideConsole').checked = true;
+                document.getElementById('pythonSingleFile').checked = true;
+                document.getElementById('pythonOptimize').checked = false;
+                document.getElementById('pythonExeIcon').value = '';
+            }, 300);
         } else {
-            updatePythonConvertStatus('✗ Conversion failed: ' + data.error);
-            addPythonConvertLog('Error: ' + data.error);
+            // Conversion failed
+            updatePythonConvertStatus('✗ Conversion Failed');
+            addPythonConvertLog('Status: Error');
+            addPythonConvertLog('Message: ' + (data.error || 'Unknown error'));
+            
+            // Hide loading overlay
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.add('hidden');
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+                alert('❌ Python to EXE Conversion Failed\n\n' + (data.error || 'An unknown error occurred.\n\nMake sure your Python project folder contains a main.py, app.py, or other Python entry point file.'));
+                document.getElementById('pythonConvertProgress').style.display = 'none';
+            }, 300);
         }
     })
     .catch(error => {
         console.error('Conversion error:', error);
         updatePythonConvertStatus('✗ Error: ' + error.message);
         addPythonConvertLog('Error: ' + error.message);
+        
+        // Hide loading overlay
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        loadingOverlay.classList.add('hidden');
+        setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+            alert('❌ Conversion Error\n\n' + error.message);
+            document.getElementById('pythonConvertProgress').style.display = 'none';
+        }, 300);
     });
 }
 
@@ -934,15 +1052,7 @@ function generateId() {
 }
 
 // Search functionality
-document.getElementById('searchInput')?.addEventListener('input', function(e) {
-    const query = e.target.value.toLowerCase();
-    const filtered = projects.filter(p => 
-        p.name.toLowerCase().includes(query) ||
-        p.description.toLowerCase().includes(query)
-    );
-    
-    console.log('Filtered projects:', filtered);
-});
+// Removed - search feature no longer available
 
 // Folder Import Functions
 function openFolderBrowser() {

@@ -115,6 +115,19 @@ Create a `project.json` file in your project root:
 - Search by name or description
 - View project details
 
+### Build Options
+- **HTML to EXE** ✅ - Fully implemented
+  - Convert HTML/CSS/JS projects to standalone EXE
+  - Custom icons and window titles
+  - Single-file executable output
+  
+- **Python to EXE** ✅ - Now fully implemented
+  - Convert Python projects to standalone EXE
+  - Automatic entry point detection (main.py, app.py, etc.)
+  - Custom application icons
+  - Hide console window option
+  - Single-file or directory package output
+
 ### Colors & Theme
 - ROJO (red) & GHOST WHITE theme
 - Add custom colors with visual color picker
@@ -161,6 +174,25 @@ MyApp.exe C:\path\to\html\project
 **Solution for APIs:** Use a CORS proxy or configure CORS headers on your API server.
 
 ## Troubleshooting
+
+### Feature Status
+This tool is actively under development. Here's what's currently available:
+
+**✅ Working Features:**
+- HTML/CSS/JavaScript to EXE conversion
+- Python project to EXE conversion
+- Project management and scanning
+- Custom application icons
+- PyInstaller-based packaging
+- Single-file or directory executable generation
+- Automatic project entry point detection
+- Console window control
+
+**🚧 Coming Soon:**
+- Advanced optimization options
+- Code signing for EXE files
+- Multiple architecture support (32-bit/64-bit)
+- UPX compression support
 
 ### Builder Won't Start
 ```bash

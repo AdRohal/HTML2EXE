@@ -7,16 +7,20 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <h2 id="loadingTitle">Building your EXE...</h2>
+            <p id="loadingMessage">This may take a few minutes. Please wait.</p>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo-section">
                 <img src="./assets/logo.png" alt="App Logo" class="app-logo" onerror="this.style.display='none'">
-            </div>
-            
-            <!-- Search Bar -->
-            <div class="sidebar-search">
-                <input type="text" placeholder="Search projects..." class="search-input">
             </div>
             
             <nav class="nav-menu">
@@ -90,9 +94,6 @@
                     <h2 id="pageTitle">Dashboard</h2>
                 </div>
                 <div class="header-right">
-                    <div class="search-box">
-                        <input type="text" placeholder="Search projects..." id="searchInput">
-                    </div>
                     <button class="version-btn">v1.0.0</button>
                     
                     <!-- Custom Window Controls (Frameless) -->
@@ -135,36 +136,6 @@
                             <div class="stat-card">
                                 <div class="stat-number">3.8+</div>
                                 <div class="stat-label">Python</div>
-                            </div>
-                        </div>
-                        
-                        <div class="quick-start">
-                            <h3>Quick Start</h3>
-                            <div class="steps">
-                                <div class="step">
-                                    <div class="step-number">1</div>
-                                    <div class="step-content">
-                                        <h4>Create or Select Project</h4>
-                                        <p>Start with a new project or open an existing one</p>
-                                    </div>
-                                    <button class="btn-primary" onclick="goToPage('create')">Create Project</button>
-                                </div>
-                                <div class="step">
-                                    <div class="step-number">2</div>
-                                    <div class="step-content">
-                                        <h4>Edit Your App</h4>
-                                        <p>Customize HTML, CSS, and JavaScript files</p>
-                                    </div>
-                                    <button class="btn-primary" onclick="goToPage('projects')">View Projects</button>
-                                </div>
-                                <div class="step">
-                                    <div class="step-number">3</div>
-                                    <div class="step-content">
-                                        <h4>Test & Build</h4>
-                                        <p>Test your app, then convert it to EXE</p>
-                                    </div>
-                                    <button class="btn-primary" onclick="goToPage('build')">Build Now</button>
-                                </div>
                             </div>
                         </div>
                         
