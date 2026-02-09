@@ -19,6 +19,13 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog
 import base64
+import io
+
+# Force UTF-8 encoding for console output to support emojis and Unicode
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
 
 try:
     from PIL import Image
