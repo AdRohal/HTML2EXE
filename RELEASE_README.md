@@ -2,7 +2,7 @@
 
 ## Download & Run
 
-1. Download **HTMLtoEXE.exe** from the [Releases](https://github.com/your-username/html-to-exe/releases) page
+1. Download **HTMLtoEXE.exe** from the [Releases](https://github.com/AdRohal/HTML2EXE/releases) page
 2. Double-click to run — no installation required
 
 ---
