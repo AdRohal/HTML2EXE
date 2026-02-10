@@ -432,7 +432,7 @@ if __name__ == "__main__":
                         print(f"  {' '.join(cmd)}\n")
                         
                         # Run PyInstaller
-                        result = subprocess.run(cmd, capture_output=True, text=True)
+                        result = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
                         
                         print(f"PyInstaller output:\n{result.stdout}")
                         
@@ -881,7 +881,7 @@ exe = EXE(
                         print(f"Spec file: {spec_path}\n")
                         
                         # Run PyInstaller
-                        result = subprocess.run(cmd, capture_output=True, text=True, cwd=build_dir)
+                        result = subprocess.run(cmd, capture_output=True, text=True, cwd=build_dir, creationflags=subprocess.CREATE_NO_WINDOW)
                         
                         print(f"PyInstaller output:\n{result.stdout}")
                         
