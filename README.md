@@ -1,238 +1,232 @@
-# HTML to EXE Converter - GUI Builder
+# HTML to EXE Builder
 
-Convert HTML, CSS, and JavaScript projects into standalone Windows EXE applications with our professional desktop GUI. No installation required for end users!
+A professional desktop application that converts **HTML/CSS/JavaScript** web projects and **Python** projects into standalone Windows `.exe` executables. No coding or command-line knowledge required — everything is done through a sleek graphical interface.
+
+![Platform](https://img.shields.io/badge/Platform-Windows-blue)
+![Python](https://img.shields.io/badge/Python-3.8%2B-green)
+
+---
+
+## What Does This App Do?
+
+- **HTML to EXE** — Take any web project (HTML, CSS, JavaScript) and package it as a native Windows desktop application (`.exe`). Users can run it without a browser, without a web server, without anything installed.
+- **Python to EXE** *(Beta)* — Convert Python scripts and projects into standalone `.exe` files. End users don't need Python installed on their machine.
+
+---
 
 ## Features
 
-✅ **Beautiful Desktop GUI** - Professional interface for managing projects  
-✅ **Import Any Project** - Scan folders with any structure (handles 1000+ nested folders)  
-✅ **Smart File Discovery** - Auto-finds HTML, CSS, JS files recursively  
-✅ **Color Customization** - Build your own color themes with live preview  
-✅ **Template Support** - Start with blank, modern UI, dashboard, or calculator templates  
-✅ **Single EXE Output** - Creates standalone executable file  
-✅ **No Dependencies** - End users don't need Python installed  
+| Feature | Description |
+|---------|-------------|
+| **Single `.exe` output** | Everything bundled into one file — just share it |
+| **No dependencies for end users** | Recipients don't need Python, Node.js, or anything else |
+| **Custom app icon** | Upload a `.png` or `.ico` file as your app icon |
+| **Project management** | Create, import, and organize multiple projects |
+| **Framework detection** | Auto-detects React, Vue, Angular, jQuery, Svelte, Bootstrap, Tailwind, etc. |
+| **Python to EXE (Beta)** | Convert Python projects with auto-detected imports and data files |
+| **Professional GUI** | Modern, frameless desktop interface built with PyWebView |
+| **Color & Theme panel** | Manage and explore color palettes for your projects |
+
+---
 
 ## System Requirements
 
-- **Windows 7 or later** (for the built EXE)
-- **Python 3.8+** (for running the builder)
-- **pip** (Python package manager)
+### To Run the Builder App (Developer Machine)
 
-## Installation & Setup
+| Requirement | Details |
+|-------------|---------|
+| **Operating System** | Windows 10 or Windows 11 (64-bit) |
+| **Python** | Version **3.8 to 3.12** recommended. Python 3.13+ works but requires PyInstaller 6.10+ |
+| **pip** | Python package manager (included with Python) |
+| **Disk Space** | ~500 MB free (for Python packages and build output) |
+| **RAM** | 4 GB minimum, 8 GB recommended |
+| **Internet** | Required only for initial package installation |
 
-### 1. Install Python Dependencies
+### For End Users (Running the Generated `.exe`)
+
+| Requirement | Details |
+|-------------|---------|
+| **Operating System** | Windows 10 or Windows 11 (64-bit) |
+| **Disk Space** | Depends on the app (~50–300 MB typical) |
+| **No Python needed** | The `.exe` includes everything |
+| **No installation needed** | Just double-click the `.exe` to run |
+
+> **Note:** Some antivirus software may flag PyInstaller-generated `.exe` files as suspicious. Users may need to add an exception. This is a known false positive.
+
+---
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/AdRohal/HTML2EXE.git
+cd HTML2EXE
+```
+
+### 2. Create a Virtual Environment (Recommended)
+
+```bash
+python -m venv .venv
+```
+
+Activate it:
+
+```powershell
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
+# Windows CMD
+.venv\Scripts\activate.bat
+```
+
+### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Launch the Builder GUI
+This installs:
+- **pywebview** (>= 5.0) — Desktop GUI framework (renders the HTML interface)
+- **pyinstaller** (>= 6.10) — Packages Python apps into standalone executables
+- **Pillow** (>= 10.0) — Image processing (converts PNG icons to ICO format)
+
+### 4. Run the App
 
 ```bash
 python builder.py
 ```
 
-The builder opens in a desktop window. Start creating your projects!
+The builder GUI will open automatically.
 
-## Creating a Project
+---
 
-### Option 1: Import Your Own Folder
-1. Click **"Browse Folder"** in the Import section
-2. Select a folder containing your HTML project
-3. The app automatically scans and finds:
-   - All HTML files (including nested ones)
-   - All CSS files
-   - All JavaScript files
-   - Assets and images
-4. Give your project a name and click **Create Project**
+## How to Use
 
-### Option 2: Use a Template
-1. Select a template (Blank, Modern UI, Dashboard, or Calculator)
-2. Enter project details (name, author, version)
-3. Click **Create Project**
+### Converting HTML to EXE
 
-## Building an EXE
+1. Open the app (`python builder.py`)
+2. Go to **Existing Project** in the sidebar
+3. Click **Browse Folder** and select your HTML project folder
+4. Fill in the project name, author, and description
+5. Click **Add Existing Project**
+6. Go to **Build System** in the sidebar
+7. Select your project from the dropdown
+8. Optionally set a custom icon (`.png` or `.ico`)
+9. Click **Start Building**
+10. Your `.exe` will be saved to your **Downloads** folder
 
-1. Go to **Build System** section
-2. Select your project from the dropdown
-3. Configure build options:
-   - **Hide console window** (recommended)
-   - **Single file** (all-in-one EXE)
-   - **Optimize size** (minimize file size)
-   - **Debug mode** (show console for troubleshooting)
-4. Click **Start Building**
-5. Your EXE will be created in the `dist/` folder
+### Converting Python to EXE (Beta)
+
+1. Open the app (`python builder.py`)
+2. Go to **Python to EXE** in the sidebar
+3. Click **Browse Project** and select your Python project folder
+4. Set the executable name and optional icon
+5. Configure options (hide console, single file, etc.)
+6. Click **Start Conversion**
+7. Your `.exe` will be saved to your **Downloads** folder
+
+> **Tip:** Your Python project should have a `main.py`, `app.py`, or `run.py` as the entry point. If none of these exist, the first `.py` file found will be used.
+
+---
+
+## What Works in the Generated EXE
+
+### HTML to EXE
+
+| Supported | Not Supported |
+|-----------|---------------|
+| HTML5 / CSS3 | Node.js / npm modules |
+| Vanilla JavaScript | Back-end servers |
+| DOM manipulation | Electron APIs |
+| Canvas & SVG | Direct file system access |
+| localStorage API | External API calls (CORS) |
+| Fetch API (local) | |
+| ES6+ features | |
+
+### Python to EXE
+
+| Supported | Notes |
+|-----------|-------|
+| Standard Python scripts | Auto-detects entry point |
+| Third-party packages | Auto-detected from imports |
+| Data files (JSON, YAML, CSV, etc.) | Bundled automatically |
+| GUI frameworks (tkinter, PyQt, etc.) | Works out of the box |
+| Web frameworks (Flask, Django) | Requires proper configuration |
+
+---
 
 ## Project Structure
 
-Your HTML project folder can have any structure. The app will find:
-- ✅ **index.html** (recommended as entry point)
-- ✅ **Any nested HTML/CSS/JS files** (automatically discovered)
-- ✅ **Assets** (images, fonts, etc.)
-- ✅ **project.json** (optional metadata)
-
-### Example Project Structure
-
 ```
-my_web_app/
-├── index.html
-├── css/
-│   ├── style.css
-│   └── components.css
-├── js/
-│   ├── app.js
-│   └── utils/
-│       └── helpers.js
-├── assets/
-│   ├── logo.png
-│   └── favicon.ico
-└── project.json (optional)
+html-to-exe/
+├── builder.py              # Main application (backend + API + build logic)
+├── requirements.txt        # Python dependencies
+├── README.md               # This file
+├── Expertus.spec            # PyInstaller spec (for building the builder itself)
+├── builder_ui/             # Frontend UI files
+│   ├── index.html          # Main HTML interface
+│   ├── style.css           # Styles
+│   ├── script.js           # Frontend logic
+│   ├── api.js              # API communication layer
+│   └── assets/             # Images, logos, etc.
+├── projects/               # Local project templates
+└── sample_project/         # Example HTML project
+    ├── index.html
+    ├── style.css
+    ├── script.js
+    └── project.json
 ```
 
-### Optional: project.json
+---
 
-Create a `project.json` file in your project root:
+## Storage Locations
 
-```json
-{
-    "name": "My Application",
-    "description": "Description of your app",
-    "version": "1.0.0",
-    "author": "Your Name",
-    "main": "index.html"
-}
-```
+| What | Where |
+|------|-------|
+| Project metadata | `Documents\HTML2EXE\<project_name>\project.json` |
+| Project files (copied) | `Downloads\<project_name>\` |
+| Built `.exe` files | `Downloads\` |
+| Python build cache | `Documents\HTMLToExe_PythonBuilds\` |
 
-## GUI Features
-
-### Dashboard
-- View project statistics
-- See total projects and built applications
-- Quick access to main functions
-
-### Projects
-- Browse all your projects
-- Search by name or description
-- View project details
-
-### Build Options
-- **HTML to EXE** ✅ - Fully implemented
-  - Convert HTML/CSS/JS projects to standalone EXE
-  - Custom icons and window titles
-  - Single-file executable output
-  
-- **Python to EXE** ✅ - Now fully implemented
-  - Convert Python projects to standalone EXE
-  - Automatic entry point detection (main.py, app.py, etc.)
-  - Custom application icons
-  - Hide console window option
-  - Single-file or directory package output
-
-### Colors & Theme
-- ROJO (red) & GHOST WHITE theme
-- Add custom colors with visual color picker
-- Copy hex codes to clipboard
-- Save colors for reuse
-
-### Settings
-- Server configuration
-- Build preferences
-- Application settings
-
-## Using the Generated EXE
-
-Distribute the EXE to end users. They can run it directly without:
-- Installing Python
-- Any development tools
-- Dependencies
-
-Users can also run the EXE with a custom project folder:
-
-```bash
-MyApp.exe C:\path\to\html\project
-```
-
-## What Works in EXE
-
-✅ HTML5 / CSS3  
-✅ Vanilla JavaScript  
-✅ DOM manipulation  
-✅ Events & listeners  
-✅ Canvas & SVG  
-✅ localStorage API  
-✅ Fetch API (with proxy for CORS)  
-✅ ES6+ features  
-
-## Limitations
-
-❌ Node.js / npm modules  
-❌ Back-end servers  
-❌ Electron APIs  
-❌ File system access (browser security)  
-❌ External API calls (CORS restrictions)  
-
-**Solution for APIs:** Use a CORS proxy or configure CORS headers on your API server.
+---
 
 ## Troubleshooting
 
-### Feature Status
-This tool is actively under development. Here's what's currently available:
+| Problem | Solution |
+|---------|----------|
+| `ModuleNotFoundError: No module named 'webview'` | Run `pip install pywebview` |
+| `ModuleNotFoundError: No module named 'pkg_resources'` | Upgrade: `pip install pyinstaller>=6.10` |
+| `ImportError: get_module_collection_mode` | Upgrade: `pip install pyinstaller>=6.10` |
+| Antivirus blocks the `.exe` | Add an exception in your antivirus software |
+| `.exe` shows "Failed to load Python DLL" | Rebuild using **single file** mode (default) |
+| First launch of `.exe` is slow | Normal — single-file mode extracts to temp on first run |
+| Build fails with path errors | Ensure project path has no special/unicode characters |
+| Builder GUI won't start | Run `pip install -r requirements.txt --upgrade` |
 
-**✅ Working Features:**
-- HTML/CSS/JavaScript to EXE conversion
-- Python project to EXE conversion
-- Project management and scanning
-- Custom application icons
-- PyInstaller-based packaging
-- Single-file or directory executable generation
-- Automatic project entry point detection
-- Console window control
+---
 
-**🚧 Coming Soon:**
-- Advanced optimization options
-- Code signing for EXE files
-- Multiple architecture support (32-bit/64-bit)
-- UPX compression support
+## FAQ
 
-### Builder Won't Start
-```bash
-pip install -r requirements.txt --upgrade
-python --version  # Must be 3.8+
-```
+**Q: Does the end user need Python installed?**
+A: No. The `.exe` includes the Python runtime and all dependencies.
 
-### EXE Won't Run
-- Ensure Python 3.8+ is installed
-- Run `pip install -r requirements.txt`
-- Windows Defender may block first-time execution - click "Run anyway"
+**Q: Does it work on Mac or Linux?**
+A: No. This tool builds Windows `.exe` files only and requires Windows to run.
 
-### Folder Scan Fails
-- Ensure folder path exists and is readable
-- Check permissions on the folder
-- Avoid network drives (use local folders)
+**Q: Why is the `.exe` file so large (~150–300 MB)?**
+A: The entire Python runtime and all required libraries are bundled inside. This is normal for PyInstaller builds.
 
-### CORS Issues in EXE
-Use a proxy service or add CORS headers to your API:
-```
-Access-Control-Allow-Origin: *
-```
+**Q: Can I use React/Vue/Angular projects?**
+A: Yes! Import your **built** project folder (the `dist` or `build` output). The app auto-detects frameworks.
 
-## Performance Tips
+**Q: The `.exe` is flagged by antivirus. Is it safe?**
+A: Yes. PyInstaller-generated executables are commonly flagged as false positives. You can submit them to your antivirus vendor for whitelisting.
 
-1. **Optimize Images** - Compress before adding
-2. **Minify Code** - Use minifiers for production
-3. **Lazy Loading** - Load resources on demand
-4. **Code Splitting** - Break large JS into smaller files
+**Q: The first launch of my EXE is slow. Is that normal?**
+A: Yes. Single-file mode extracts files to a temporary folder on the first run. Subsequent launches are faster.
 
-## License
-
-Free to use for personal and commercial projects.
-
-## Resources
-
-- [PyWebView Documentation](https://pywebview.kivy.org/)
-- [PyInstaller Documentation](https://pyinstaller.org/)
-- [HTML5 Documentation](https://developer.mozilla.org/docs/Web/HTML)
-- [CSS3 Documentation](https://developer.mozilla.org/docs/Web/CSS)
+---
 
 ## Quick Start
 
@@ -245,9 +239,18 @@ python builder.py
 
 # 3. Import a folder or create from template
 # 4. Configure and build your EXE
-# 5. Share with users!
+# 5. Share with users — they just double-click to run!
 ```
 
 ---
 
-**Convert web apps to desktop apps with ease!**
+## License
+
+Free to use for personal and commercial projects.
+
+## Resources
+
+- [PyWebView Documentation](https://pywebview.flowrl.com/)
+- [PyInstaller Documentation](https://pyinstaller.org/)
+- [HTML5 Reference](https://developer.mozilla.org/docs/Web/HTML)
+- [CSS3 Reference](https://developer.mozilla.org/docs/Web/CSS)
