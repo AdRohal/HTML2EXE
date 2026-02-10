@@ -679,6 +679,74 @@ if __name__ == "__main__":
                         if has_requirements:
                             print(f"✓ Dependencies file found: requirements.txt")
                         
+                        # Analyze project for data files and dependencies
+                        print(f"\n📊 Analyzing project structure...")
+                        datas_list = []
+                        binaries_list = []
+                        hidden_imports = []
+                        
+                        # Scan Python files for imports to auto-detect hidden imports
+                        import_keywords = {
+                            'webview': 'webview',
+                            'flask': 'flask',
+                            'django': 'django',
+                            'requests': 'requests',
+                            'numpy': 'numpy',
+                            'pandas': 'pandas',
+                            'PIL': 'PIL',
+                            'cv2': 'cv2',
+                            'tkinter': 'tkinter',
+                            'PyQt5': 'PyQt5',
+                            'PyQt6': 'PyQt6',
+                            'PySide6': 'PySide6',
+                            'pygame': 'pygame',
+                            'sqlalchemy': 'sqlalchemy',
+                            'sqlite3': 'sqlite3',
+                            'cryptography': 'cryptography',
+                            'matplotlib': 'matplotlib',
+                            'scipy': 'scipy',
+                            'sklearn': 'sklearn',
+                        }
+                        
+                        for py_file in py_files:
+                            try:
+                                with open(os.path.join(python_path, py_file), 'r', encoding='utf-8', errors='ignore') as f:
+                                    content = f.read()
+                                for keyword, module in import_keywords.items():
+                                    if keyword in content and module not in hidden_imports:
+                                        hidden_imports.append(module)
+                                        print(f"  🔍 Detected import: {module}")
+                            except Exception:
+                                pass
+                        
+                        # Find all data files (json, yaml, txt, config, etc.)
+                        data_extensions = {'.json', '.yaml', '.yml', '.txt', '.config', '.conf', '.cfg', '.ini', '.xml', '.csv', '.db'}
+                        non_python_files = {}
+                        
+                        for root, dirs, files in os.walk(python_path):
+                            # Skip virtual envs and build folders
+                            dirs[:] = [d for d in dirs if d not in {'venv', '.venv', 'env', '__pycache__', '.git', 'build', 'dist', 'node_modules'}]
+                            
+                            for file in files:
+                                file_path = os.path.join(root, file)
+                                rel_path = os.path.relpath(file_path, python_path)
+                                
+                                # Check if it's a data file
+                                _, ext = os.path.splitext(file)
+                                if ext.lower() in data_extensions or (not file.endswith('.py') and not file.endswith('.pyc')):
+                                    folder = os.path.dirname(rel_path)
+                                    if folder and folder not in {'__pycache__'}:
+                                        if folder not in non_python_files:
+                                            non_python_files[folder] = []
+                                        non_python_files[folder].append(file)
+                        
+                        # Create datas entries for PyInstaller
+                        for folder, files in non_python_files.items():
+                            folder_path_full = os.path.join(python_path, folder)
+                            # Format: (source_folder, destination_folder(relative to exe))
+                            datas_list.append((folder_path_full, folder))
+                            print(f"  📦 Data folder: {folder}")
+                        
                         # Create build directory
                         user_home = os.path.expanduser('~')
                         build_base_dir = os.path.join(user_home, 'Documents', 'HTMLToExe_PythonBuilds')
@@ -741,42 +809,79 @@ if __name__ == "__main__":
                             except Exception as e:
                                 print(f"⚠️  Icon processing failed: {e}")
                         
-                        print(f"\n🔧 Preparing PyInstaller command...")
+                        # Generate PyInstaller spec file
+                        print(f"\n📝 Generating PyInstaller spec file...")
+                        spec_path = os.path.join(build_dir, f'{exe_name}.spec')
                         
-                        # Create PyInstaller command
+                        # Create datas string for spec file
+                        datas_string = "[]"
+                        if datas_list:
+                            # Use forward slashes to avoid escape character issues
+                            datas_entries = [f"(r'{src}', '{dest.replace(chr(92), '/')}')" for src, dest in datas_list]
+                            datas_string = "[" + ", ".join(datas_entries) + "]"
+                        
+                        # Create hidden imports string
+                        hidden_imports_string = str(hidden_imports)
+                        
+                        icon_statement = ""
+                        if final_icon_path and os.path.exists(final_icon_path):
+                            icon_path_escaped = final_icon_path.replace('\\', '\\\\')
+                            icon_statement = f",\n    icon=r'{icon_path_escaped}'"
+                        
+                        console_value = 'False' if hide_console else 'True'
+                        spec_content = f"""# -*- mode: python ; coding: utf-8 -*-
+
+a = Analysis(
+    [r'{entry_point_path}'],
+    pathex=[r'{python_path}'],
+    binaries=[],
+    datas={datas_string},
+    hiddenimports={hidden_imports_string},
+    hookspath=[],
+    hooksconfig={{}},
+    runtime_hooks=[],
+    excludes=[],
+    noarchive=False,
+)
+pyz = PYZ(a.pure)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.datas,
+    [],
+    name=r'{exe_name}',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console={console_value}{icon_statement}
+)
+"""
+                        
+                        with open(spec_path, 'w') as f:
+                            f.write(spec_content)
+                        
+                        print(f"✅ Spec file created: {spec_path}")
+                        
+                        # Create PyInstaller command using spec file
                         cmd = [
                             'pyinstaller',
-                            '--onefile' if single_file else '--onedir',
-                        ]
-                        
-                        if hide_console:
-                            cmd.append('--windowed')
-                        
-                        if optimize:
-                            cmd.extend(['--optimize', '2'])
-                        
-                        cmd.extend([
-                            '--noupx',
-                            '-y',
-                            f'--name={exe_name}',
                             f'--distpath={output_dir}',
                             f'--workpath={os.path.join(build_dir, "build")}',
-                            f'--specpath={build_dir}',
-                        ])
+                            '--noconfirm',
+                            '-y',
+                            spec_path
+                        ]
                         
-                        # Add icon if available
-                        if final_icon_path and os.path.exists(final_icon_path):
-                            abs_icon_path = os.path.abspath(final_icon_path)
-                            print(f"📌 Icon: {abs_icon_path}")
-                            cmd.append(f'--icon={abs_icon_path}')
-                        
-                        cmd.append(entry_point_path)
-                        
-                        print(f"\n⚙️  Running PyInstaller...")
-                        print(f"Command: {' '.join(cmd)}\n")
+                        print(f"\n⚙️  Running PyInstaller with spec file...")
+                        print(f"Spec file: {spec_path}\n")
                         
                         # Run PyInstaller
-                        result = subprocess.run(cmd, capture_output=True, text=True, cwd=python_path)
+                        result = subprocess.run(cmd, capture_output=True, text=True, cwd=build_dir)
                         
                         print(f"PyInstaller output:\n{result.stdout}")
                         
@@ -785,8 +890,13 @@ if __name__ == "__main__":
                         
                         if result.returncode != 0:
                             print(f"\n❌ Build failed!")
+                            # Extract the actual error from the output (last few lines)
+                            error_output = result.stderr.strip() if result.stderr else result.stdout.strip()
+                            error_lines = error_output.split('\n')
+                            # Get only the last 10 lines which contain the actual error
+                            actual_error = '\n'.join(error_lines[-10:]) if len(error_lines) > 10 else error_output
                             self.send_json({
-                                'error': f'PyInstaller build failed: {result.stderr}'
+                                'error': f'PyInstaller build failed: {actual_error}'
                             }, 500)
                             return
                         
@@ -801,13 +911,14 @@ if __name__ == "__main__":
                             
                             self.send_json({
                                 'success': True,
-                                'message': f'Python to EXE conversion successful!',
+                                'message': f'Python to EXE conversion successful! EXE is in Downloads/',
                                 'exePath': exe_path,
                                 'exeName': f'{exe_name}.exe',
                                 'size': f'{exe_size:.2f} MB'
                             })
                         else:
                             print(f"❌ EXE was not created at expected location!")
+                            print(f"Checked: {exe_path}")
                             self.send_json({
                                 'error': 'EXE was not created. Check the build output above for errors.'
                             }, 500)
@@ -1113,7 +1224,15 @@ class HTMLToEXEBuilder:
     
     def start_server(self):
         """Start HTTP server"""
-        BuilderHTTPHandler.builder_root = os.path.dirname(os.path.abspath(__file__))
+        # Handle both frozen (PyInstaller) and normal Python execution
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller executable
+            builder_root = sys._MEIPASS
+        else:
+            # Running as normal Python script
+            builder_root = os.path.dirname(os.path.abspath(__file__))
+        
+        BuilderHTTPHandler.builder_root = builder_root
         
         server = HTTPServer(('localhost', self.port), BuilderHTTPHandler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
