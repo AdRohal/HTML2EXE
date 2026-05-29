@@ -70,6 +70,142 @@ function closeWindow() {
 
 // ============ End Window Control Functions ============
 
+// ============ Toast Notification System ============
+function showToast(message, type = 'info') {
+    const icons = {
+        success: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+        error:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+        warning: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        info:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+    };
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span>${message}</span>`;
+    container.appendChild(toast);
+
+    const remove = () => {
+        toast.classList.add('removing');
+        toast.addEventListener('animationend', () => toast.remove(), { once: true });
+    };
+    toast.addEventListener('click', remove);
+    setTimeout(remove, type === 'error' ? 6000 : 3500);
+}
+
+// ============ Custom Confirm Dialog ============
+function showConfirm(message, onConfirm, onCancel, title = 'Confirm') {
+    const modal = document.getElementById('confirmModal');
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = message;
+    modal.style.display = 'flex';
+
+    const okBtn = document.getElementById('confirmOkBtn');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+
+    const close = () => { modal.style.display = 'none'; };
+    const handleOk = () => { close(); if (onConfirm) onConfirm(); };
+    const handleCancel = () => { close(); if (onCancel) onCancel(); };
+
+    // Remove previous listeners by replacing nodes
+    const newOk = okBtn.cloneNode(true);
+    const newCancel = cancelBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOk, okBtn);
+    cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+    newOk.addEventListener('click', handleOk);
+    newCancel.addEventListener('click', handleCancel);
+    modal.addEventListener('click', (e) => { if (e.target === modal) handleCancel(); }, { once: true });
+}
+
+// ============ Open Output Folder ============
+let lastBuildOutputPath = '';
+let lastPythonOutputPath = '';
+
+function openOutputFolder(type) {
+    const path = type === 'python' ? lastPythonOutputPath : lastBuildOutputPath;
+    if (!path) { showToast('No output folder path available', 'warning'); return; }
+
+    fetch('/api/open-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderPath: path })
+    })
+    .then(r => r.json())
+    .then(data => { if (!data.success) showToast('Could not open folder: ' + (data.error || ''), 'error'); })
+    .catch(() => showToast('Could not open folder', 'error'));
+}
+
+// ============ Build Steps Animation ============
+const BUILD_STEPS = [
+    'Validating project structure...',
+    'Copying project files...',
+    'Initializing PyInstaller...',
+    'Compiling executable...',
+    'Packaging resources...',
+    'Finalizing build...'
+];
+
+let buildStepInterval = null;
+let currentBuildStep = 0;
+
+function startBuildStepsAnimation(stepsContainerId, progressFillId) {
+    const container = document.getElementById(stepsContainerId);
+    if (!container) return;
+    currentBuildStep = 0;
+    container.innerHTML = BUILD_STEPS.map((s, i) =>
+        `<div class="build-step" id="${stepsContainerId}-step-${i}"><span class="build-step-dot"></span>${s}</div>`
+    ).join('');
+
+    buildStepInterval = setInterval(() => {
+        if (currentBuildStep < BUILD_STEPS.length) {
+            if (currentBuildStep > 0) {
+                const prev = document.getElementById(`${stepsContainerId}-step-${currentBuildStep - 1}`);
+                if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
+            }
+            const curr = document.getElementById(`${stepsContainerId}-step-${currentBuildStep}`);
+            if (curr) curr.classList.add('active');
+            const fill = document.getElementById(progressFillId);
+            if (fill) fill.style.width = Math.round(((currentBuildStep + 1) / BUILD_STEPS.length) * 85) + '%';
+            currentBuildStep++;
+        }
+    }, 1800);
+}
+
+function stopBuildStepsAnimation(stepsContainerId, progressFillId, success) {
+    clearInterval(buildStepInterval);
+    buildStepInterval = null;
+    // Mark remaining steps
+    for (let i = 0; i < BUILD_STEPS.length; i++) {
+        const el = document.getElementById(`${stepsContainerId}-step-${i}`);
+        if (el) { el.classList.remove('active'); if (success) el.classList.add('done'); }
+    }
+    const fill = document.getElementById(progressFillId);
+    if (fill) fill.style.width = '100%';
+}
+
+// ============ Icon Preview ============
+function setupIconPreview(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    if (!input || !preview) return;
+    input.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(this.files[0]);
+        } else {
+            preview.style.display = 'none';
+        }
+    });
+}
+
+// ============ End Helpers ============
+
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
@@ -103,6 +239,12 @@ function initializeApp() {
     if (stored) {
         projects = JSON.parse(stored);
     }
+
+    // Load built count
+    const storedBuilt = localStorage.getItem('htmlToExeBuiltCount');
+    if (storedBuilt) {
+        builtCount = parseInt(storedBuilt, 10) || 0;
+    }
     
     // Set up navigation
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -111,6 +253,19 @@ function initializeApp() {
             goToPage(page);
         });
     });
+
+    // Setup icon previews
+    setupIconPreview('buildIcon', 'buildIconPreview');
+    setupIconPreview('pythonExeIcon', 'pythonIconPreview');
+
+    // Fetch real Python version for dashboard
+    fetch('/api/system-info')
+        .then(r => r.json())
+        .then(data => {
+            const el = document.getElementById('pythonVersion');
+            if (el && data.python_version) el.textContent = data.python_version;
+        })
+        .catch(() => {});
 }
 
 function setupEventListeners() {
@@ -177,30 +332,13 @@ function loadProjects() {
             if (data.success && data.projects.length > 0) {
                 projects = data.projects;
                 updateStats();
-                
-                projectsList.innerHTML = projects.map(project => `
-                    <div class="project-card" onclick="selectProject('${project.id}')">
-                        <div class="project-card-header">
-                            <div class="project-icon">📦</div>
-                            <button class="project-menu" onclick="event.stopPropagation(); showProjectMenu('${project.id}')">⋮</button>
-                        </div>
-                        <h3>${project.name}</h3>
-                        <p>${project.description || 'No description'}</p>
-                        <div class="project-tag">
-                            ${project.analysis.projectType}
-                        </div>
-                        <div class="project-stats">
-                            <span>v${project.version}</span>
-                            <span>📅 ${new Date(project.created).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                `).join('');
+                renderProjectsGrid('all', '');
             } else {
                 projects = [];
                 updateStats();
                 projectsList.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-icon">📁</div>
+                        <div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
                         <h3>No projects yet</h3>
                         <p>Create your first project to get started</p>
                         <button class="btn-primary" onclick="goToPage('create')">Create Project</button>
@@ -214,7 +352,7 @@ function loadProjects() {
             updateStats();
             projectsList.innerHTML = `
                 <div class="empty-state error">
-                    <div class="empty-icon">⚠️</div>
+                    <div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
                     <h3>Error loading projects</h3>
                     <p>${error.message}</p>
                 </div>
@@ -319,7 +457,7 @@ function showProjectAnalysis(project) {
                 <hr style="margin: 20px 0;">
                 
                 <div class="analysis-section">
-                    <h3>📊 Project Analysis</h3>
+                    <h3>Project Analysis</h3>
                     
                     <div class="analysis-item">
                         <strong>Project Type:</strong>
@@ -353,30 +491,153 @@ function closeProjectAnalysis() {
 function editProject(projectId) {
     const project = projects.find(p => p.id === projectId);
     if (project) {
-        alert(`Edit: ${project.name}\n\nPath: ${project.path}`);
         closeProjectAnalysis();
-        // TODO: Open file explorer or editor at project path
+        goToPage('build');
+        // Pre-select project in build dropdown
+        setTimeout(() => {
+            const select = document.getElementById('buildProject');
+            if (select) {
+                select.value = projectId;
+                select.dispatchEvent(new Event('change'));
+            }
+        }, 150);
     }
 }
 
 function showProjectMenu(projectId) {
-    const actions = confirm('Edit or delete this project?');
-    if (!actions) {
-        const deleteProject = confirm('Are you sure you want to delete this project?');
-        if (deleteProject) {
-            projects = projects.filter(p => p.id !== projectId);
-            saveProjects();
-            loadProjects();
+    // Remove any existing dropdown
+    const existing = document.querySelector('.project-menu-dropdown');
+    if (existing) { existing.remove(); return; }
+
+    const menuBtn = document.querySelector(`[onclick*="showProjectMenu('${projectId}')"]`);
+    if (!menuBtn) return;
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'project-menu-dropdown';
+    dropdown.innerHTML = `
+        <button onclick="editProjectFromMenu('${projectId}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Build</button>
+        <button onclick="viewProjectDetails('${projectId}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Details</button>
+        <button class="danger" onclick="deleteProjectFromMenu('${projectId}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete</button>
+    `;
+    menuBtn.parentElement.appendChild(dropdown);
+
+    // Close on outside click
+    setTimeout(() => {
+        document.addEventListener('click', function handler(e) {
+            if (!dropdown.contains(e.target)) {
+                dropdown.remove();
+                document.removeEventListener('click', handler);
+            }
+        });
+    }, 10);
+}
+
+function editProjectFromMenu(projectId) {
+    document.querySelector('.project-menu-dropdown')?.remove();
+    goToPage('build');
+    setTimeout(() => {
+        const select = document.getElementById('buildProject');
+        if (select) {
+            select.value = projectId;
+            select.dispatchEvent(new Event('change'));
         }
-    }
+    }, 150);
+}
+
+function viewProjectDetails(projectId) {
+    document.querySelector('.project-menu-dropdown')?.remove();
+    const project = projects.find(p => p.id === projectId);
+    if (project) showProjectAnalysis(project);
+}
+
+function deleteProjectFromMenu(projectId) {
+    document.querySelector('.project-menu-dropdown')?.remove();
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    showConfirm(
+        `Delete "${project.name}"? This will remove the project and its files from disk.`,
+        () => {
+            fetch('/api/delete-project', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId: projectId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Project "${project.name}" deleted`, 'success');
+                    loadProjects();
+                    updateStats();
+                } else {
+                    showToast('Delete failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(() => showToast('Failed to delete project', 'error'));
+        },
+        null,
+        'Delete Project'
+    );
 }
 
 function filterProjects(filter) {
     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
-    
-    console.log('Filtering projects:', filter);
-    // Implement filtering logic
+    renderProjectsGrid(filter, document.getElementById('projectSearch')?.value || '');
+}
+
+function searchProjects(query) {
+    const activeFilter = document.querySelector('.filter-btn.active');
+    const filter = activeFilter ? activeFilter.textContent.toLowerCase().trim() : 'all';
+    renderProjectsGrid(filter, query);
+}
+
+function renderProjectsGrid(filter, searchQuery) {
+    const projectsList = document.getElementById('projectsList');
+    const now = new Date();
+    const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const q = (searchQuery || '').toLowerCase();
+
+    let filtered = projects.filter(p => {
+        if (filter === 'recent') return new Date(p.created) >= sevenDaysAgo;
+        if (filter === 'built') return p.built === true;
+        return true;
+    });
+
+    if (q) {
+        filtered = filtered.filter(p =>
+            p.name.toLowerCase().includes(q) ||
+            (p.description || '').toLowerCase().includes(q) ||
+            (p.analysis?.projectType || '').toLowerCase().includes(q)
+        );
+    }
+
+    if (filtered.length === 0) {
+        projectsList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></div>
+                <h3>${q ? 'No matching projects' : 'No projects yet'}</h3>
+                <p>${q ? `No results for "${q}"` : 'Create your first project to get started'}</p>
+                ${!q ? '<button class="btn-primary" onclick="goToPage(\'create\')">Create Project</button>' : ''}
+            </div>
+        `;
+        return;
+    }
+
+    projectsList.innerHTML = filtered.map(project => `
+        <div class="project-card" onclick="selectProject('${project.id}')">
+            <div class="project-card-header">
+                <div class="project-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg></div>
+                <button class="project-menu" onclick="event.stopPropagation(); showProjectMenu('${project.id}')">&#8942;</button>
+            </div>
+            <h3>${project.name}${project.built ? '<span class="project-built-badge">✓ Built</span>' : ''}</h3>
+            <p>${project.description || 'No description'}</p>
+            <div class="project-tag">${project.analysis?.projectType || 'Unknown'}</div>
+            <div class="project-stats">
+                <span>v${project.version}</span>
+                <span>${new Date(project.created).toLocaleDateString()}</span>
+            </div>
+        </div>
+    `).join('');
 }
 
 // Create Project Page
@@ -393,13 +654,13 @@ function createProject() {
     const description = document.getElementById('projectDescription').value.trim();
     
     if (!name) {
-        alert('Please enter a project name');
+        showToast('Please enter a project name', 'warning');
         return;
     }
     
     // Validate project name
     if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-        alert('Project name must contain only alphanumeric characters, hyphens, and underscores');
+        showToast('Project name must contain only alphanumeric characters, hyphens, and underscores', 'warning');
         return;
     }
     
@@ -430,7 +691,7 @@ function createProject() {
     document.getElementById('folderScanResult').style.display = 'none';
     importedFolder = null;  // Reset imported folder
     
-    alert(`✓ Project "${name}" created successfully!\n\nYou can now edit the files in the project folder.`);
+    showToast(`Project "${name}" created successfully!`, 'success');
     goToPage('projects');
     updateStats();
 }
@@ -442,17 +703,17 @@ function createExistingProject() {
     const description = document.getElementById('existingProjectDescription').value.trim();
 
     if (!existingImportedFolder) {
-        alert('Please import a project folder first');
+        showToast('Please import a project folder first', 'warning');
         return;
     }
 
     if (!name) {
-        alert('Please enter a project name');
+        showToast('Please enter a project name', 'warning');
         return;
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-        alert('Project name must contain only alphanumeric characters, hyphens, and underscores');
+        showToast('Project name must contain only alphanumeric characters, hyphens, and underscores', 'warning');
         return;
     }
 
@@ -488,19 +749,19 @@ function createExistingProject() {
             document.getElementById('existingScanResult').style.display = 'none';
             existingImportedFolder = null;
 
-            alert(`✓ Project "${name}" created successfully!\n\nProject saved to:\n${data.downloadFolder}\n\nMetadata saved to:\n${data.metadataFolder}`);
+            showToast(`Project "${name}" created successfully!`, 'success');
             
             // Reload projects
             loadProjects();
             updateStats();
             goToPage('projects');
         } else {
-            alert(`❌ Error: ${data.error || 'Failed to create project'}`);
+            showToast(`Error: ${data.error || 'Failed to create project'}`, 'error');
         }
     })
     .catch(error => {
         console.error('Error creating project:', error);
-        alert(`❌ Error: ${error.message}`);
+        showToast(`Error: ${error.message}`, 'error');
     })
     .finally(() => {
         // Restore button state
@@ -511,6 +772,7 @@ function createExistingProject() {
 
 function saveProjects() {
     localStorage.setItem('htmlToExeProjects', JSON.stringify(projects));
+    localStorage.setItem('htmlToExeBuiltCount', String(builtCount));
 }
 
 // Build Page
@@ -531,19 +793,17 @@ function populateBuildProject() {
 function testProject() {
     const projectId = document.getElementById('buildProject').value;
     if (!projectId) {
-        alert('Please select a project to test');
+        showToast('Please select a project to test', 'warning');
         return;
     }
-    
     const project = projects.find(p => p.id === projectId);
-    alert(`🧪 Testing project: ${project.name}\n\nThe test window will open in a moment...`);
-    // In real app, this would call the Python backend to run the project
+    showToast(`Test mode is not yet available for "${project.name}"`, 'info');
 }
 
 function buildProject() {
     const projectId = document.getElementById('buildProject').value;
     if (!projectId) {
-        alert('Please select a project to build');
+        showToast('Please select a project to build', 'warning');
         return;
     }
     
@@ -563,6 +823,8 @@ function buildProject() {
     document.getElementById('buildStatus').textContent = 'Initializing build...';
     document.getElementById('buildLog').textContent = '';
     document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('openBuildOutputBtn').style.display = 'none';
+    startBuildStepsAnimation('buildSteps', 'progressFill');
     
     // Prepare build data
     const buildData = {
@@ -605,12 +867,19 @@ function executeBuild(buildData) {
         });
     })
     .then(({ status, data }) => {
-        document.getElementById('progressFill').style.width = '100%';
+        stopBuildStepsAnimation('buildSteps', 'progressFill', data.success);
         
         if (data.success) {
             document.getElementById('buildStatus').textContent = '✨ Build complete!';
             document.getElementById('buildLog').textContent += `✅ Build successful!\n\nEXE Location: ${data.exePath}\n\nYou can now run this file!`;
             
+            // Show open output button
+            const outBtn = document.getElementById('openBuildOutputBtn');
+            if (outBtn && data.exePath) {
+                lastBuildOutputPath = data.exePath.substring(0, data.exePath.lastIndexOf('\\')) || data.exePath;
+                outBtn.style.display = 'inline-flex';
+            }
+
             // Mark as built
             const projectId = document.getElementById('buildProject').value;
             const project = projects.find(p => p.id === projectId);
@@ -626,7 +895,7 @@ function executeBuild(buildData) {
             loadingOverlay.classList.add('hidden');
             setTimeout(() => {
                 loadingOverlay.style.display = 'none';
-                alert(`✓ Successfully built!\n\nExecutable: ${data.exeName}\n\nLocation: ${data.exePath}\n\nYou can now distribute this file to others!`);
+                showToast(`Build complete! "${data.exeName}" saved to Downloads`, 'success');
             }, 300);
         } else {
             document.getElementById('buildStatus').textContent = '❌ Build failed!';
@@ -637,11 +906,12 @@ function executeBuild(buildData) {
             loadingOverlay.classList.add('hidden');
             setTimeout(() => {
                 loadingOverlay.style.display = 'none';
-                alert(`Build error: ${data.error}`);
+                showToast(`Build failed: ${data.error}`, 'error');
             }, 300);
         }
     })
     .catch(error => {
+        stopBuildStepsAnimation('buildSteps', 'progressFill', false);
         console.error('Error building project:', error);
         document.getElementById('buildStatus').textContent = '❌ Build failed!';
         document.getElementById('buildLog').textContent += `\n❌ Error: ${error.message}`;
@@ -651,7 +921,7 @@ function executeBuild(buildData) {
         loadingOverlay.classList.add('hidden');
         setTimeout(() => {
             loadingOverlay.style.display = 'none';
-            alert(`Build error: ${error.message}`);
+            showToast(`Build error: ${error.message}`, 'error');
         }, 300);
     });
 }
@@ -690,7 +960,7 @@ function simulateBuild(project, exeName) {
             
             // Show success message
             setTimeout(() => {
-                alert(`✓ Successfully built!\n\nExecutable: dist/${exeName}.exe\nSize: ~180MB\n\nYou can now distribute this file to others!`);
+                showToast(`Build complete! dist/${exeName}.exe is ready`, 'success');
             }, 500);
         }
     }, 500);
@@ -708,11 +978,11 @@ function saveSettings() {
     };
     
     localStorage.setItem('htmlToExeSettings', JSON.stringify(settings));
-    alert('✓ Settings saved successfully!');
+    showToast('Settings saved successfully!', 'success');
 }
 
 function resetSettings() {
-    if (confirm('Reset all settings to default values?')) {
+    showConfirm('Reset all settings to default values?', () => {
         document.getElementById('serverPort').value = '8000';
         document.getElementById('windowWidth').value = '1024';
         document.getElementById('windowHeight').value = '768';
@@ -720,43 +990,40 @@ function resetSettings() {
         document.getElementById('autoMinify').checked = true;
         document.getElementById('includeSourceMaps').checked = false;
         saveSettings();
-    }
+        showToast('Settings reset to defaults', 'info');
+    }, null, 'Reset Settings');
 }
 
 function openProjectsFolder() {
-    alert('Opening projects folder...');
-    // In real app, this would call the Python backend to open the folder
+    const user = 'Documents/HTML2EXE';
+    fetch('/api/open-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderPath: 'Documents\\HTML2EXE', relative: true })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) showToast('Could not open folder: ' + (data.error || ''), 'error');
+    })
+    .catch(() => showToast('Could not open projects folder', 'error'));
 }
 
 function cleanCache() {
-    if (confirm('Clear all cached data? This will remove temporary files and rebuild cache on next use.')) {
+    showConfirm('Clear all cached data? This will remove temporary files and refresh the app.', () => {
         try {
-            // Clear localStorage
             localStorage.clear();
-            
-            // Clear sessionStorage
             sessionStorage.clear();
-            
-            // Clear IndexedDB
             if (window.indexedDB) {
                 indexedDB.databases().then(dbs => {
-                    dbs.forEach(db => {
-                        indexedDB.deleteDatabase(db.name);
-                    });
+                    dbs.forEach(db => indexedDB.deleteDatabase(db.name));
                 });
             }
-            
-            alert('✓ Cache cleaned successfully! The application will refresh.');
-            
-            // Refresh the page to rebuild cache
-            setTimeout(() => {
-                location.reload();
-            }, 500);
+            showToast('Cache cleared. Refreshing...', 'success');
+            setTimeout(() => location.reload(), 1200);
         } catch (e) {
-            alert('Error cleaning cache: ' + e.message);
-            console.error('Cache clean error:', e);
+            showToast('Error clearing cache: ' + e.message, 'error');
         }
-    }
+    }, null, 'Clear Cache');
 }
 
 function browsePythonProject() {
@@ -785,14 +1052,14 @@ function browsePythonProject() {
             pythonPathInput.value = '';
             document.getElementById('pythonProjectInfo').style.display = 'none';
         } else {
-            alert(data.error || 'Failed to open folder browser');
+            showToast(data.error || 'Failed to open folder browser', 'error');
             pythonPathInput.value = '';
             document.getElementById('pythonProjectInfo').style.display = 'none';
         }
     })
     .catch(error => {
         console.error('Error opening folder browser:', error);
-        alert('Error opening folder browser: ' + error.message);
+        showToast('Error opening folder browser: ' + error.message, 'error');
         pythonPathInput.value = '';
         document.getElementById('pythonProjectInfo').style.display = 'none';
     });
@@ -802,7 +1069,7 @@ function convertPythonToExe() {
     const pythonPath = document.getElementById('pythonProjectPath').value;
     
     if (!pythonPath) {
-        alert('Please select a Python project first');
+        showToast('Please select a Python project first', 'warning');
         return;
     }
     
@@ -821,6 +1088,8 @@ function convertPythonToExe() {
     
     // Show progress section
     document.getElementById('pythonConvertProgress').style.display = 'block';
+    document.getElementById('openPythonOutputBtn').style.display = 'none';
+    startBuildStepsAnimation('pythonBuildSteps', 'pythonProgressFill');
     
     let iconData = null;
     if (iconFile) {
@@ -868,43 +1137,52 @@ function executeConversion(pythonPath, exeName, hideConsole, singleFile, optimiz
             addPythonConvertLog(`EXE Location: ${data.exePath}`);
             addPythonConvertLog(`File Size: ${data.size}`);
             
-            // Update progress to 100%
-            document.getElementById('pythonProgressFill').style.width = '100%';
+            stopBuildStepsAnimation('pythonBuildSteps', 'pythonProgressFill', true);
+
+            // Show open output button
+            const outBtn = document.getElementById('openPythonOutputBtn');
+            if (outBtn && data.exePath) {
+                lastPythonOutputPath = data.exePath.substring(0, data.exePath.lastIndexOf('\\')) || data.exePath;
+                outBtn.style.display = 'inline-flex';
+            }
             
             // Hide loading overlay
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.classList.add('hidden');
             setTimeout(() => {
                 loadingOverlay.style.display = 'none';
-                alert(`✓ Python to EXE Conversion Successful!\n\nExecutable: ${data.exeName}\n\nLocation: ${data.exePath}\n\nSize: ${data.size}\n\nYou can now distribute this file to users!`);
+                showToast(`Conversion complete! "${data.exeName}" (${data.size}) saved to Downloads`, 'success');
                 
                 // Reset form
-                document.getElementById('pythonConvertProgress').style.display = 'none';
                 document.getElementById('pythonProjectPath').value = '';
                 document.getElementById('pythonExeName').value = 'MyApp';
                 document.getElementById('pythonHideConsole').checked = true;
                 document.getElementById('pythonSingleFile').checked = true;
                 document.getElementById('pythonOptimize').checked = false;
                 document.getElementById('pythonExeIcon').value = '';
+                const prev = document.getElementById('pythonIconPreview');
+                if (prev) prev.style.display = 'none';
             }, 300);
         } else {
             // Conversion failed
             updatePythonConvertStatus('✗ Conversion Failed');
             addPythonConvertLog('Status: Error');
             addPythonConvertLog('Message: ' + (data.error || 'Unknown error'));
+            stopBuildStepsAnimation('pythonBuildSteps', 'pythonProgressFill', false);
             
             // Hide loading overlay
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.classList.add('hidden');
             setTimeout(() => {
                 loadingOverlay.style.display = 'none';
-                alert('❌ Python to EXE Conversion Failed\n\n' + (data.error || 'An unknown error occurred.\n\nMake sure your Python project folder contains a main.py, app.py, or other Python entry point file.'));
+                showToast('Conversion failed: ' + (data.error || 'Unknown error'), 'error');
                 document.getElementById('pythonConvertProgress').style.display = 'none';
             }, 300);
         }
     })
     .catch(error => {
         console.error('Conversion error:', error);
+        stopBuildStepsAnimation('pythonBuildSteps', 'pythonProgressFill', false);
         updatePythonConvertStatus('✗ Error: ' + error.message);
         addPythonConvertLog('Error: ' + error.message);
         
@@ -913,7 +1191,7 @@ function executeConversion(pythonPath, exeName, hideConsole, singleFile, optimiz
         loadingOverlay.classList.add('hidden');
         setTimeout(() => {
             loadingOverlay.style.display = 'none';
-            alert('❌ Conversion Error\n\n' + error.message);
+            showToast('Conversion error: ' + error.message, 'error');
             document.getElementById('pythonConvertProgress').style.display = 'none';
         }, 300);
     });
@@ -921,8 +1199,6 @@ function executeConversion(pythonPath, exeName, hideConsole, singleFile, optimiz
 
 function updatePythonConvertStatus(message) {
     document.getElementById('pythonConvertStatus').textContent = message;
-    const progress = Math.random() * 30 + 70;  // Simulate progress 70-100%
-    document.getElementById('pythonProgressFill').style.width = progress + '%';
 }
 
 function addPythonConvertLog(message) {
@@ -952,7 +1228,7 @@ function loadColors() {
     if (allColors.length === 0) {
         colorGrid.innerHTML = `
             <div class="empty-colors">
-                <div class="empty-icon">🎨</div>
+                <div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
                 <h3>No colors</h3>
                 <p>Add a custom color to get started</p>
             </div>
@@ -968,7 +1244,7 @@ function loadColors() {
             <div class="color-info">
                 <div class="color-name">
                     <span>${color.name}</span>
-                    ${index >= defaultColors.length ? `<button class="color-delete-btn" onclick="deleteColor(${index})">✕</button>` : ''}
+                    ${index >= defaultColors.length ? `<button class="color-delete-btn" onclick="deleteColor(${index})"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>` : ''}
                 </div>
                 <div class="color-hex" onclick="copyToClipboard('${color.hex}')">${color.hex}</div>
                 <div class="color-rgb">${color.rgb}</div>
@@ -1005,11 +1281,11 @@ function addCustomColor() {
 
 function deleteColor(index) {
     const colorToDelete = defaultColors.concat(customColors)[index];
-    if (confirm(`Delete "${colorToDelete.name}"?`)) {
+    showConfirm(`Delete "${colorToDelete.name}"?`, () => {
         customColors = customColors.filter((_, i) => i !== (index - defaultColors.length));
         loadColors();
         saveColors();
-    }
+    }, null, 'Delete Color');
 }
 
 function copyToClipboard(text) {
@@ -1075,13 +1351,13 @@ function openFolderBrowser() {
         } else if (data.cancelled) {
             folderPathInput.value = '';
         } else {
-            alert(data.error || 'Failed to open folder browser');
+            showToast(data.error || 'Failed to open folder browser', 'error');
             folderPathInput.value = '';
         }
     })
     .catch(error => {
         console.error('Error opening folder browser:', error);
-        alert('Error opening folder browser: ' + error.message);
+        showToast('Error opening folder browser: ' + error.message, 'error');
         folderPathInput.value = '';
     });
 }
@@ -1103,13 +1379,13 @@ function openExistingFolderBrowser() {
         } else if (data.cancelled) {
             folderPathInput.value = '';
         } else {
-            alert(data.error || 'Failed to open folder browser');
+            showToast(data.error || 'Failed to open folder browser', 'error');
             folderPathInput.value = '';
         }
     })
     .catch(error => {
         console.error('Error opening folder browser:', error);
-        alert('Error opening folder browser: ' + error.message);
+        showToast('Error opening folder browser: ' + error.message, 'error');
         folderPathInput.value = '';
     });
 }
@@ -1154,14 +1430,14 @@ function scanSelectedFolder(folderPath) {
             
             scanResult.style.display = 'block';
         } else {
-            alert(data.error || 'Failed to scan folder');
+            showToast(data.error || 'Failed to scan folder', 'error');
             folderPathInput.value = '';
             scanResult.style.display = 'none';
         }
     })
     .catch(error => {
         console.error('Error scanning folder:', error);
-        alert('Error scanning folder: ' + error.message);
+        showToast('Error scanning folder: ' + error.message, 'error');
         folderPathInput.value = '';
         scanResult.style.display = 'none';
     });
@@ -1201,14 +1477,14 @@ function scanExistingFolder(folderPath) {
 
             scanResult.style.display = 'block';
         } else {
-            alert(data.error || 'Failed to scan folder');
+            showToast(data.error || 'Failed to scan folder', 'error');
             folderPathInput.value = '';
             scanResult.style.display = 'none';
         }
     })
     .catch(error => {
         console.error('Error scanning folder:', error);
-        alert('Error scanning folder: ' + error.message);
+        showToast('Error scanning folder: ' + error.message, 'error');
         folderPathInput.value = '';
         scanResult.style.display = 'none';
     });

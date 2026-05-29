@@ -38,6 +38,14 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
     """HTTP handler for serving builder UI and API"""
     
     builder_root = None
+
+    def handle_error(self, request, client_address):
+        """Suppress harmless connection-aborted errors (client closed window)."""
+        import sys
+        exc = sys.exc_info()[1]
+        if isinstance(exc, ConnectionAbortedError):
+            return
+        super().handle_error(request, client_address)
     
     def do_GET(self):
         """Handle GET requests"""
@@ -280,6 +288,61 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
                             return
                         
                         print(f"✅ Project folder exists")
+
+                        # Auto-build if this is a source project (React/Vue/Angular/etc.)
+                        has_package_json = os.path.exists(os.path.join(project_folder, 'package.json'))
+                        has_src_dir = os.path.isdir(os.path.join(project_folder, 'src'))
+                        has_dist = os.path.isdir(os.path.join(project_folder, 'dist'))
+                        has_build_out = os.path.isdir(os.path.join(project_folder, 'build'))
+                        is_source_project = has_package_json and has_src_dir and not (has_dist or has_build_out)
+
+                        if is_source_project:
+                            print(f"\n📦 Source project detected — running npm build automatically...")
+                            try:
+                                # Run npm install
+                                print(f"  → npm install ...")
+                                r1 = subprocess.run(
+                                    'npm install',
+                                    cwd=project_folder,
+                                    capture_output=True, text=True,
+                                    shell=True
+                                )
+                                if r1.returncode != 0:
+                                    self.send_json({'error': f'npm install failed:\n{r1.stderr}'}, 500)
+                                    return
+                                print(f"  ✅ npm install done")
+
+                                # Run npm run build
+                                print(f"  → npm run build ...")
+                                r2 = subprocess.run(
+                                    'npm run build',
+                                    cwd=project_folder,
+                                    capture_output=True, text=True,
+                                    shell=True
+                                )
+                                if r2.returncode != 0:
+                                    self.send_json({'error': f'npm run build failed:\n{r2.stderr}'}, 500)
+                                    return
+                                print(f"  ✅ npm run build done")
+
+                                # Find the output folder (dist/ or build/)
+                                if os.path.isdir(os.path.join(project_folder, 'dist')):
+                                    project_folder = os.path.join(project_folder, 'dist')
+                                elif os.path.isdir(os.path.join(project_folder, 'build')):
+                                    project_folder = os.path.join(project_folder, 'build')
+                                elif os.path.isdir(os.path.join(project_folder, 'out')):
+                                    project_folder = os.path.join(project_folder, 'out')
+                                else:
+                                    self.send_json({'error': 'npm build succeeded but no dist/, build/, or out/ folder was found.'}, 500)
+                                    return
+                                print(f"  📂 Using built output: {project_folder}")
+                            except FileNotFoundError:
+                                self.send_json({'error': 'npm not found. Please install Node.js from https://nodejs.org/ and try again.'}, 500)
+                                return
+                            except Exception as e:
+                                self.send_json({'error': f'npm build error: {str(e)}'}, 500)
+                                return
+
                         
                         # Create build directory
                         build_dir = os.path.join(metadata_dir, 'build')
@@ -287,32 +350,51 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
                         
                         print(f"\n🔧 Creating build script...")
                         
-                        # Create a Python script that serves the HTML project
+                        # Create a Python script that serves the HTML project via HTTP
                         build_script = f'''
 import os
 import sys
+import threading
 import webview
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
-# Project directory
-PROJECT_DIR = r"{project_folder}"
+# Locate project directory — bundled inside EXE or original path
+if getattr(sys, "frozen", False):
+    BASE_DIR = sys._MEIPASS
+    PROJECT_DIR = os.path.join(BASE_DIR, "_project")
+else:
+    PROJECT_DIR = r"{project_folder}"
 
-class API:
-    def __init__(self):
-        pass
+class SilentHandler(SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=PROJECT_DIR, **kwargs)
+    def log_message(self, format, *args):
+        pass  # Suppress server logs
+
+def find_free_port():
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("", 0))
+        return s.getsockname()[1]
 
 if __name__ == "__main__":
-    # Create window with project
+    port = find_free_port()
+    server = HTTPServer(("127.0.0.1", port), SilentHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
     window = webview.create_window(
         title="{project_name}",
-        url=f"file://" + os.path.join(PROJECT_DIR, "index.html"),
+        url=f"http://127.0.0.1:{{port}}/index.html",
         width=1024,
         height=768,
         resizable=True,
-        background_color="#ffffff"
+        background_color="#0f172a"
     )
-    
-    webview.start(debug=False, http_server=False)
+
+    webview.start(debug=False)
+    server.shutdown()
 '''
                         
                         build_script_path = os.path.join(build_dir, 'main.py')
@@ -399,7 +481,7 @@ if __name__ == "__main__":
                         
                         # Create build subdirectories
                         os.makedirs(os.path.join(build_dir, 'build'), exist_ok=True)
-                        
+
                         # PyInstaller command (use absolute Windows paths)
                         cmd = [
                             'pyinstaller',
@@ -413,6 +495,8 @@ if __name__ == "__main__":
                             f'--specpath={build_dir}',
                             '--hidden-import=webview',
                             '--hidden-import=webview.js',
+                            # Bundle the project HTML/CSS/JS files inside the EXE
+                            f'--add-data={project_folder}{os.pathsep}_project',
                         ]
                         
                         # Add icon if available - use absolute path for Windows
@@ -931,6 +1015,47 @@ exe = EXE(
                 else:
                     self.send_json({'error': 'No project data provided'}, 400)
             
+            elif endpoint == 'open-folder' and method == 'POST':
+                try:
+                    data = json.loads(body) if body else {}
+                    folder_path = data.get('folderPath', '')
+                    relative = data.get('relative', False)
+                    if relative:
+                        user_home = os.path.expanduser('~')
+                        folder_path = os.path.join(user_home, folder_path.replace('/', os.sep))
+                    if folder_path and os.path.exists(folder_path):
+                        subprocess.Popen(['explorer', os.path.abspath(folder_path)])
+                        self.send_json({'success': True})
+                    elif folder_path:
+                        parent = os.path.dirname(folder_path)
+                        if os.path.exists(parent):
+                            subprocess.Popen(['explorer', os.path.abspath(parent)])
+                            self.send_json({'success': True})
+                        else:
+                            self.send_json({'success': False, 'error': 'Folder not found'})
+                    else:
+                        self.send_json({'success': False, 'error': 'No folder path provided'})
+                except Exception as e:
+                    self.send_json({'error': str(e)}, 500)
+
+            elif endpoint == 'delete-project' and method == 'POST':
+                try:
+                    data = json.loads(body) if body else {}
+                    project_id = data.get('projectId', '')
+                    if not project_id:
+                        self.send_json({'error': 'No project ID provided'}, 400)
+                        return
+                    user_home = os.path.expanduser('~')
+                    metadata_dir = os.path.join(user_home, 'Documents', 'HTML2EXE', project_id)
+                    if os.path.exists(metadata_dir):
+                        shutil.rmtree(metadata_dir)
+                        print(f"✅ Deleted project: {project_id}")
+                        self.send_json({'success': True, 'message': f'Project {project_id} deleted'})
+                    else:
+                        self.send_json({'success': True, 'message': 'Project not found on disk (already removed)'})
+                except Exception as e:
+                    self.send_json({'error': str(e)}, 500)
+
             else:
                 self.send_json({'error': 'Endpoint not found'}, 404)
         
@@ -1253,31 +1378,33 @@ class HTMLToEXEBuilder:
             screen_height = root.winfo_screenheight()
             root.destroy()
             
-            # Calculate center position
-            window_width = 1800
-            window_height = 1200
+            # Calculate window size: 85% of screen, capped at 1400x860
+            window_width = min(int(screen_width * 0.85), 1400)
+            window_height = min(int(screen_height * 0.85), 860)
             x_position = (screen_width - window_width) // 2
             y_position = (screen_height - window_height) // 2
-            
+
             print(f"Monitor resolution: {screen_width}x{screen_height}")
             print(f"Window position: ({x_position}, {y_position})")
         except Exception as e:
             print(f"Warning: Could not get screen dimensions: {e}")
+            window_width = 1280
+            window_height = 800
             x_position = 100
             y_position = 100
-        
+
         # Create window with frameless style and custom controls
         window = webview.create_window(
             title='HTML to EXE Builder',
             url=self.server_url,
-            width=1800,
-            height=1200,
+            width=window_width,
+            height=window_height,
             x=x_position,
             y=y_position,
             resizable=True,
             min_size=(1024, 600),
             frameless=True,
-            background_color='#E8EBF7'
+            background_color='#0f172a'
         )
         
         # Store window instance for API access
