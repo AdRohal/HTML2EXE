@@ -1,5 +1,9 @@
 # HTML to EXE Builder
 
+<div align="center">
+  <img src="./assets/HTML2EXE.png" alt="HTML2EXE Logo" width="300" />
+</div>
+
 A professional desktop application that converts **HTML/CSS/JavaScript** web projects into Windows `.exe` desktop apps, **Python** scripts into standalone executables, and **web frameworks** into Android APKs. No coding or command-line knowledge required — everything is done through a sleek graphical interface.
 
 ![Platform](https://img.shields.io/badge/Platform-Windows-blue)
