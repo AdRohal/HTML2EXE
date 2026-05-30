@@ -65,6 +65,10 @@
                         <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
                         <span>Python to EXE</span>
                     </button>
+                    <button class="nav-item" data-page="android">
+                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span>
+                        <span>Web to Android</span>
+                    </button>
                 </div>
 
                 <!-- Settings Section -->
@@ -509,7 +513,10 @@
                             <div id="buildSteps" class="build-steps"></div>
                             <p id="buildStatus">Initializing build...</p>
                             <div id="buildLog" class="build-log"></div>
+                            <div class="log-actions">
                             <button id="openBuildOutputBtn" class="btn-secondary open-output-btn" style="display:none;" onclick="openOutputFolder('build')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Open Output Folder</button>
+                            <button class="btn-secondary copy-log-btn" onclick="copyLog('buildLog')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Output</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -683,11 +690,131 @@
                             <div id="pythonBuildSteps" class="build-steps"></div>
                             <p id="pythonConvertStatus">Initializing conversion...</p>
                             <div id="pythonConvertLog" class="build-log"></div>
+                            <div class="log-actions">
                             <button id="openPythonOutputBtn" class="btn-secondary open-output-btn" style="display:none;" onclick="openOutputFolder('python')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Open Output Folder</button>
+                            <button class="btn-secondary copy-log-btn" onclick="copyLog('pythonConvertLog')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Output</button>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
+                <!-- Web to Android Page -->
+                <div class="page" id="android-page">
+                    <div class="page-content">
+                        <div class="page-header">
+                            <div>
+                                <h2>Web to Android <span class="beta-badge">BETA</span></h2>
+                                <p class="subtitle">Convert HTML, React, Vue, Next.js, Angular, Svelte and more into Android APKs</p>
+                            </div>
+                        </div>
+
+                        <!-- Prerequisites Panel -->
+                        <div class="python-converter-section">
+                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                                <h3>Prerequisites</h3>
+                                <button class="btn-secondary" style="padding:6px 14px; font-size:12px;" onclick="checkAndroidPrereqs()">Check Again</button>
+                            </div>
+                            <div class="prereq-list" id="prereqList">
+                                <div class="prereq-item">
+                                    <span class="prereq-label">Checking...</span>
+                                </div>
+                            </div>
+                            <p style="margin-top:12px; font-size:12px; color:var(--text-muted);">
+                                Requires <a href="https://adoptium.net" target="_blank" style="color:var(--primary);">JDK 17+</a>,
+                                <a href="https://developer.android.com/studio" target="_blank" style="color:var(--primary);">Android Studio</a> (with Android SDK, set <code style="background:var(--surface);padding:1px 5px;border-radius:3px;font-size:11px;">ANDROID_HOME</code>), and
+                                <a href="https://nodejs.org" target="_blank" style="color:var(--primary);">Node.js</a>.
+                            </p>
+                        </div>
+
+                        <!-- Source Selection -->
+                        <div class="python-converter-section">
+                            <h3>Web Project Source</h3>
+                            <div style="display:flex; gap:12px; margin-bottom:16px;">
+                                <label class="checkbox" style="flex:1; padding:10px 14px; background:var(--card-bg-2); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
+                                    <input type="radio" name="androidSource" id="androidSourceProject" value="project" checked onchange="toggleAndroidSource()">
+                                    <span>Use existing project</span>
+                                </label>
+                                <label class="checkbox" style="flex:1; padding:10px 14px; background:var(--card-bg-2); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
+                                    <input type="radio" name="androidSource" id="androidSourceFolder" value="folder" onchange="toggleAndroidSource()">
+                                    <span>Browse a folder</span>
+                                </label>
+                            </div>
+
+                            <div id="androidProjectSelect">
+                                <div class="form-group">
+                                    <label>Project</label>
+                                    <select id="androidProject" class="form-select">
+                                        <option value="">— Select a project —</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="androidFolderSelect" style="display:none;">
+                                <div class="form-group">
+                                    <label>Folder</label>
+                                    <div class="import-controls">
+                                        <input type="text" id="androidFolderPath" placeholder="Select your web project folder..." readonly>
+                                        <button class="btn-primary" onclick="browseAndroidFolder()">Browse</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- App Settings -->
+                        <div class="python-converter-section">
+                            <h3>App Settings</h3>
+                            <div class="form-group">
+                                <label for="androidAppName">App Name</label>
+                                <input type="text" id="androidAppName" placeholder="My App" value="MyApp">
+                                <small>Display name on the device</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="androidPackageName">Package Name</label>
+                                <input type="text" id="androidPackageName" placeholder="com.example.myapp" value="com.example.myapp">
+                                <small>Unique identifier — use reverse domain style (e.g. com.yourname.appname)</small>
+                            </div>
+                        </div>
+
+                        <!-- Info -->
+                        <div class="python-converter-section">
+                            <h3>What to expect</h3>
+                            <ul class="requirements-list">
+                                <li>React, Vue, Angular, Next.js, Svelte, Nuxt and plain HTML are all supported</li>
+                                <li>Source projects (with <code style="font-size:11px;">src/</code> folder) are auto-built with <code style="font-size:11px;">npm run build</code></li>
+                                <li>First build may take <strong>5–10 minutes</strong> — Gradle downloads Android dependencies (~500 MB)</li>
+                                <li>Subsequent builds are fast (~30 seconds)</li>
+                                <li>Output: a <strong>debug APK</strong> saved to your Downloads folder</li>
+                            </ul>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="btn-primary btn-large" id="buildAndroidBtn" onclick="buildAndroid()">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                                Build APK
+                            </button>
+                        </div>
+
+                        <!-- Build Progress -->
+                        <div id="androidBuildProgress" class="build-progress" style="display:none;">
+                            <h3>Build Progress</h3>
+                            <div class="progress-bar">
+                                <div id="androidProgressFill" class="progress-fill" style="width:0%"></div>
+                            </div>
+                            <div id="androidBuildSteps" class="build-steps"></div>
+                            <p id="androidBuildStatus">Initializing...</p>
+                            <div id="androidBuildLog" class="build-log"></div>
+                            <div class="log-actions">
+                            <button id="openAndroidOutputBtn" class="btn-secondary open-output-btn" style="display:none;" onclick="openAndroidOutputFolder()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                Open APK Folder
+                            </button>
+                            <button class="btn-secondary copy-log-btn" onclick="copyLog('androidBuildLog')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Output</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
         </main>
     </div>

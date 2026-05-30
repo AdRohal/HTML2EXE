@@ -1043,6 +1043,32 @@ html, body {
     border: 1px solid rgba(125, 211, 252, 0.1);
 }
 
+.log-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.copy-log-btn {
+    display: flex;
+    align-items: center;
+    padding: 7px 14px !important;
+    font-size: 12px !important;
+}
+
+.copy-log-btn.copied {
+    color: #4ade80 !important;
+    border-color: #4ade80 !important;
+}
+
+.log-actions .open-output-btn {
+    display: flex;
+    align-items: center;
+    padding: 7px 14px !important;
+    font-size: 12px !important;
+}
+
 /* Buttons */
 .btn-primary,
 .btn-secondary {
@@ -1383,6 +1409,74 @@ html, body {
 
 .requirements-list li:last-child {
     border-bottom: none;
+}
+
+/* Prerequisites Panel (Web to Android) */
+.prereq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.prereq-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--card-bg-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.prereq-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.prereq-ok {
+    background: rgba(52, 211, 153, 0.15);
+    color: var(--success);
+}
+
+.prereq-fail {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+}
+
+.prereq-label {
+    font-weight: 500;
+    color: var(--text);
+    min-width: 120px;
+}
+
+.prereq-detail {
+    color: var(--text-muted);
+    font-size: 12px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.prereq-link {
+    color: var(--primary);
+    font-size: 12px;
+    text-decoration: none;
+    padding: 2px 8px;
+    border: 1px solid var(--primary);
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.prereq-link:hover {
+    background: rgba(167, 139, 250, 0.12);
 }
 
 /* Modal */

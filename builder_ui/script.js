@@ -136,6 +136,23 @@ function openOutputFolder(type) {
     .catch(() => showToast('Could not open folder', 'error'));
 }
 
+function copyLog(logId) {
+    const el = document.getElementById(logId);
+    if (!el) return;
+    const text = el.textContent || '';
+    if (!text.trim()) { showToast('Log is empty', 'warning'); return; }
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = el.closest('.build-progress').querySelector('.copy-log-btn');
+        if (btn) {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="20 6 9 17 4 12"/></svg>Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
+        }
+        showToast('Log copied to clipboard', 'success');
+    }).catch(() => showToast('Failed to copy', 'error'));
+}
+
 // ============ Build Steps Animation ============
 const BUILD_STEPS = [
     'Validating project structure...',
@@ -257,7 +274,6 @@ function initializeApp() {
     // Setup icon previews
     setupIconPreview('buildIcon', 'buildIconPreview');
     setupIconPreview('pythonExeIcon', 'pythonIconPreview');
-
     // Fetch real Python version for dashboard
     fetch('/api/system-info')
         .then(r => r.json())
@@ -295,7 +311,8 @@ function goToPage(page) {
             build: 'Build System',
             colors: 'Colors & Theme',
             settings: 'Settings',
-            'python-convert': 'Python to EXE'
+            'python-convert': 'Python to EXE',
+            android: 'Web to Android'
         };
         document.getElementById('pageTitle').textContent = pageTitles[page] || (page.charAt(0).toUpperCase() + page.slice(1));
         
@@ -306,6 +323,8 @@ function goToPage(page) {
             populateBuildProject();
         } else if (page === 'colors') {
             loadColors();
+        } else if (page === 'android') {
+            loadAndroidPage();
         }
     }
 }
@@ -1583,5 +1602,193 @@ function displayExistingProjectAnalysis(analysis) {
         dependenciesSection.style.display = 'block';
     }
 }
+
+// ============ Web to Android ============
+
+let androidApkFolder = null;
+
+const ANDROID_BUILD_STEPS = [
+    'Checking prerequisites...',
+    'Resolving web source...',
+    'Running npm build (if needed)...',
+    'Installing Capacitor...',
+    'Initialising Android platform...',
+    'Syncing web assets...',
+    'Running Gradle assembleDebug...',
+    'Copying APK to Downloads...'
+];
+
+function loadAndroidPage() {
+    // Populate project dropdown
+    const sel = document.getElementById('androidProject');
+    if (sel) {
+        sel.innerHTML = '<option value="">— Select a project —</option>';
+        projects.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name;
+            sel.appendChild(opt);
+        });
+    }
+    // Auto-check prereqs
+    checkAndroidPrereqs();
+}
+
+function toggleAndroidSource() {
+    const isFolder = document.getElementById('androidSourceFolder').checked;
+    document.getElementById('androidProjectSelect').style.display = isFolder ? 'none' : 'block';
+    document.getElementById('androidFolderSelect').style.display  = isFolder ? 'block' : 'none';
+}
+
+function browseAndroidFolder() {
+    fetch('/api/browse-folder', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.folderPath) {
+                document.getElementById('androidFolderPath').value = data.folderPath;
+            }
+        })
+        .catch(() => showToast('Failed to open folder browser', 'error'));
+}
+
+function checkAndroidPrereqs() {
+    const list = document.getElementById('prereqList');
+    if (!list) return;
+    list.innerHTML = '<div class="prereq-item"><span class="prereq-label" style="color:var(--text-muted)">Checking...</span></div>';
+
+    fetch('/api/check-android-prereqs')
+        .then(r => r.json())
+        .then(data => {
+            const items = [
+                { key: 'java', label: 'Java JDK 17+',    link: 'https://adoptium.net' },
+                { key: 'sdk',  label: 'Android SDK',     link: 'https://developer.android.com/studio' },
+                { key: 'node', label: 'Node.js',         link: 'https://nodejs.org' },
+            ];
+            list.innerHTML = items.map(item => {
+                const info = data[item.key] || {};
+                const ok = info.ok;
+                return `
+                <div class="prereq-item">
+                    <span class="prereq-status ${ok ? 'prereq-ok' : 'prereq-fail'}">
+                        ${ok
+                            ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+                            : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+                        }
+                    </span>
+                    <span class="prereq-label">${item.label}</span>
+                    <span class="prereq-detail">${info.message || ''}</span>
+                    ${!ok ? `<a class="prereq-link" href="${item.link}" target="_blank">Install</a>` : ''}
+                </div>`;
+            }).join('');
+
+            const buildBtn = document.getElementById('buildAndroidBtn');
+            if (buildBtn) buildBtn.disabled = !data.allOk;
+        })
+        .catch(() => {
+            list.innerHTML = '<div class="prereq-item"><span class="prereq-label" style="color:var(--danger)">Failed to check prerequisites</span></div>';
+        });
+}
+
+function buildAndroid() {
+    const useFolder = document.getElementById('androidSourceFolder').checked;
+    const projectId  = document.getElementById('androidProject')?.value || '';
+    const folderPath = document.getElementById('androidFolderPath')?.value || '';
+    const appName    = (document.getElementById('androidAppName')?.value || 'MyApp').trim();
+    const pkgName    = (document.getElementById('androidPackageName')?.value || 'com.example.myapp').trim();
+
+    if (!useFolder && !projectId) {
+        showToast('Please select a project', 'warning'); return;
+    }
+    if (useFolder && !folderPath) {
+        showToast('Please select a web project folder', 'warning'); return;
+    }
+    if (!appName) {
+        showToast('Please enter an app name', 'warning'); return;
+    }
+    const pkgRe = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/;
+    if (!pkgRe.test(pkgName)) {
+        showToast('Package name must be like com.example.myapp (lowercase, dot-separated)', 'warning'); return;
+    }
+
+    // Show progress section
+    const progressEl = document.getElementById('androidBuildProgress');
+    if (progressEl) progressEl.style.display = 'block';
+    progressEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    document.getElementById('openAndroidOutputBtn').style.display = 'none';
+    document.getElementById('androidBuildStatus').textContent = 'Starting build...';
+    document.getElementById('androidBuildLog').textContent = '';
+    androidApkFolder = null;
+
+    // Animate steps
+    const stepsEl = document.getElementById('androidBuildSteps');
+    stepsEl.innerHTML = ANDROID_BUILD_STEPS.map((s, i) =>
+        `<div class="build-step" id="android-step-${i}"><span class="build-step-dot"></span>${s}</div>`
+    ).join('');
+
+    let stepIdx = 0;
+    const stepInterval = setInterval(() => {
+        if (stepIdx > 0) {
+            const prev = document.getElementById(`android-step-${stepIdx - 1}`);
+            if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
+        }
+        const curr = document.getElementById(`android-step-${stepIdx}`);
+        if (curr) curr.classList.add('active');
+        const fill = document.getElementById('androidProgressFill');
+        if (fill) fill.style.width = Math.round(((stepIdx + 1) / ANDROID_BUILD_STEPS.length) * 85) + '%';
+        if (stepIdx < ANDROID_BUILD_STEPS.length - 1) stepIdx++;
+    }, 4000);
+
+    const payload = { appName, packageName: pkgName };
+    if (useFolder) payload.folderPath = folderPath;
+    else           payload.projectId  = projectId;
+
+    fetch('/api/build-android', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        clearInterval(stepInterval);
+        // Mark all steps done / failed
+        for (let i = 0; i < ANDROID_BUILD_STEPS.length; i++) {
+            const el = document.getElementById(`android-step-${i}`);
+            if (el) { el.classList.remove('active'); if (data.success) el.classList.add('done'); }
+        }
+        const fill = document.getElementById('androidProgressFill');
+        if (fill) fill.style.width = '100%';
+
+        const logEl = document.getElementById('androidBuildLog');
+        if (data.log && data.log.length) logEl.textContent = data.log.join('\n');
+
+        if (data.success) {
+            document.getElementById('androidBuildStatus').textContent = 'APK built successfully!';
+            androidApkFolder = data.apkFolder;
+            document.getElementById('openAndroidOutputBtn').style.display = 'inline-flex';
+            showToast('APK built! Saved to your Downloads folder', 'success');
+        } else {
+            document.getElementById('androidBuildStatus').textContent = 'Build failed';
+            logEl.textContent += '\n\nError: ' + (data.error || 'Unknown error');
+            showToast('Build failed: ' + (data.error || '').slice(0, 100), 'error');
+        }
+    })
+    .catch(err => {
+        clearInterval(stepInterval);
+        document.getElementById('androidBuildStatus').textContent = 'Network error';
+        showToast('Request failed: ' + err.message, 'error');
+    });
+}
+
+function openAndroidOutputFolder() {
+    const folder = androidApkFolder || (document.getElementById('androidFolderPath')?.value) || '';
+    fetch('/api/open-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderPath: folder || '~/Downloads' })
+    }).catch(() => {});
+}
+
+// ============ End Web to Android ============
 
 
