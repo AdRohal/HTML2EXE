@@ -183,7 +183,6 @@ The builder GUI will open automatically.
 
 ## What Works in the Generated Files
 
-### HTML to EXE & Web to Android APK
 
 ### HTML to EXE & Web to Android APK
 
@@ -365,7 +364,7 @@ python builder.py
 
 ## License
 
-Free to use for personal and commercial projects.
+Released under the [MIT License](LICENSE) - free for personal and commercial use.
 
 ## Resources
 

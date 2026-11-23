@@ -20,6 +20,8 @@ import tkinter as tk
 from tkinter import filedialog
 import base64
 import io
+import re
+import secrets
 
 # Force UTF-8 encoding for console output to support emojis and Unicode
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
@@ -32,6 +34,49 @@ try:
     HAS_PILLOW = True
 except ImportError:
     HAS_PILLOW = False
+
+
+# ---------------------------------------------------------------------------
+# Security helpers
+# ---------------------------------------------------------------------------
+# The builder exposes a local HTTP API that can delete folders and run builds.
+# Every /api/ request must carry this per-launch secret (injected into our own
+# page only) and must come from our own origin. A random website open in the
+# user's browser can neither read the token nor pass the Origin/Host checks.
+API_TOKEN = secrets.token_urlsafe(32)
+
+_SAFE_ID_RE = re.compile(r'^[^\\/:*?"<>|\x00-\x1f]{1,100}$')
+
+
+def _pywebview_version():
+    """pywebview has no __version__ attribute; ask the package metadata."""
+    try:
+        from importlib.metadata import version
+        return version('pywebview')
+    except Exception:
+        return 'unknown'
+
+
+def projects_root():
+    """Folder that holds project metadata."""
+    return os.path.join(os.path.expanduser('~'), 'Documents', 'HTML2EXE')
+
+
+def is_safe_project_id(value):
+    """True if value is a plain folder name (no separators, no '..')."""
+    return (isinstance(value, str) and value.strip() not in ('', '.', '..')
+            and value == value.strip() and bool(_SAFE_ID_RE.match(value)))
+
+
+def project_dir_for(project_id):
+    """Return the metadata dir for a project id, or None if the id is unsafe."""
+    if not is_safe_project_id(project_id):
+        return None
+    root = os.path.realpath(projects_root())
+    path = os.path.realpath(os.path.join(root, project_id))
+    if os.path.dirname(path) != root:
+        return None
+    return path
 
 
 class BuilderHTTPHandler(SimpleHTTPRequestHandler):
@@ -47,6 +92,21 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
             return
         super().handle_error(request, client_address)
     
+    def _is_authorized(self):
+        """Check Host, Origin and API token for /api/ requests."""
+        port = self.server.server_address[1]
+        allowed_hosts = {f'localhost:{port}', f'127.0.0.1:{port}'}
+        if self.headers.get('Host', '') not in allowed_hosts:
+            return False
+        origin = self.headers.get('Origin')
+        if origin and origin not in {f'http://{h}' for h in allowed_hosts}:
+            return False
+        supplied = self.headers.get('X-Builder-Token', '')
+        return secrets.compare_digest(supplied.encode(), API_TOKEN.encode())
+
+    def _reject(self):
+        self.send_error(403, "Forbidden")
+
     def do_GET(self):
         """Handle GET requests"""
         # Parse URL
@@ -55,6 +115,8 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
         
         # API endpoints
         if path.startswith('/api/'):
+            if not self._is_authorized():
+                return self._reject()
             self.handle_api_request(path[5:], 'GET')
             return
         
@@ -88,6 +150,8 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
         path = parsed.path
         
         if path.startswith('/api/'):
+            if not self._is_authorized():
+                return self._reject()
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             self.handle_api_request(path[5:], 'POST', body)
@@ -101,6 +165,8 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
         path = parsed.path
         
         if path.startswith('/api/'):
+            if not self._is_authorized():
+                return self._reject()
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             self.handle_api_request(path[5:], 'PUT', body)
@@ -114,6 +180,8 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
         path = parsed.path
         
         if path.startswith('/api/'):
+            if not self._is_authorized():
+                return self._reject()
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             self.handle_api_request(path[5:], 'DELETE', body)
@@ -182,7 +250,7 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
                 info = {
                     'python_version': f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
                     'platform': sys.platform,
-                    'pywebview_version': webview.__version__,
+                    'pywebview_version': _pywebview_version(),
                 }
                 self.send_json(info)
             
@@ -263,7 +331,10 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
                             return
                         
                         user_home = os.path.expanduser('~')
-                        metadata_dir = os.path.join(user_home, 'Documents', 'HTML2EXE', project_id)
+                        metadata_dir = project_dir_for(project_id)
+                        if metadata_dir is None:
+                            self.send_json({'error': 'Invalid project ID'}, 400)
+                            return
                         project_json_path = os.path.join(metadata_dir, 'project.json')
                         
                         print(f"\n📂 Looking for metadata: {project_json_path}")
@@ -583,7 +654,10 @@ if __name__ == "__main__":
                         if not project_name:
                             self.send_json({'error': 'Project name is required'}, 400)
                             return
-                        
+                        if not is_safe_project_id(project_name):
+                            self.send_json({'error': 'Project name cannot contain any of: / : * ? " < > | or a backslash'}, 400)
+                            return
+
                         # Get user's Downloads and Documents folders
                         user_home = os.path.expanduser('~')
                         downloads_dir = os.path.join(user_home, 'Downloads', project_name)
@@ -1045,8 +1119,10 @@ exe = EXE(
                     if not project_id:
                         self.send_json({'error': 'No project ID provided'}, 400)
                         return
-                    user_home = os.path.expanduser('~')
-                    metadata_dir = os.path.join(user_home, 'Documents', 'HTML2EXE', project_id)
+                    metadata_dir = project_dir_for(project_id)
+                    if metadata_dir is None:
+                        self.send_json({'error': 'Invalid project ID'}, 400)
+                        return
                     if os.path.exists(metadata_dir):
                         shutil.rmtree(metadata_dir)
                         print(f"✅ Deleted project: {project_id}")
@@ -1082,21 +1158,45 @@ exe = EXE(
     
     def serve_file(self, file_path):
         """Serve a static file"""
-        full_path = os.path.join(self.builder_root, file_path)
-        
-        if not os.path.exists(full_path):
+        ui_root = os.path.realpath(os.path.join(self.builder_root, 'builder_ui'))
+        full_path = os.path.realpath(os.path.join(self.builder_root, file_path))
+
+        # Never serve anything outside builder_ui/ (blocks ../ traversal)
+        try:
+            inside = os.path.commonpath([ui_root, full_path]) == ui_root
+        except ValueError:
+            inside = False
+        if not inside:
+            self.send_error(403, "Forbidden")
+            return
+
+        if not os.path.isfile(full_path):
             self.send_error(404, "File Not Found")
             return
-        
+
         try:
             with open(full_path, 'rb') as f:
                 content = f.read()
+
+            if file_path.endswith('index.html'):
+                # Give our own page the API token and make every same-origin
+                # fetch('/api/...') carry it.
+                bootstrap = (
+                    '<script>(function(){var t=' + json.dumps(API_TOKEN) + ';'
+                    'var f=window.fetch;window.fetch=function(u,o){'
+                    'o=o||{};var s=(typeof u==="string")?u:(u&&u.url)||"";'
+                    'if(s.indexOf("/api/")!==-1){var h=new Headers(o.headers||{});'
+                    'h.set("X-Builder-Token",t);o.headers=h;}'
+                    'return f.call(this,u,o);};})();</script>'
+                ).encode('utf-8')
+                content = content.replace(b'<head>', b'<head>' + bootstrap, 1)
             
             # Set content type
             content_type = self.guess_type(file_path)
             self.send_response(200)
             self.send_header('Content-type', content_type)
             self.send_header('Content-Length', len(content))
+            self.send_header('Cache-Control', 'no-store')
             self.end_headers()
             self.wfile.write(content)
         except Exception as e:
@@ -1109,7 +1209,6 @@ exe = EXE(
             self.send_response(status)
             self.send_header('Content-type', 'application/json')
             self.send_header('Content-Length', len(response))
-            self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             self.wfile.write(response)
         except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
@@ -1553,7 +1652,10 @@ class AndroidBuilder:
             web_src = folder_path
             if project_id and not folder_path:
                 user_home = os.path.expanduser('~')
-                meta_path = os.path.join(user_home, 'Documents', 'HTML2EXE', project_id, 'project.json')
+                safe_dir = project_dir_for(project_id)
+                if safe_dir is None:
+                    return {'success': False, 'error': 'Invalid project ID', 'log': log_lines}
+                meta_path = os.path.join(safe_dir, 'project.json')
                 if not os.path.exists(meta_path):
                     return {'success': False, 'error': 'Project metadata not found', 'log': log_lines}
                 with open(meta_path, 'r', encoding='utf-8') as f:
