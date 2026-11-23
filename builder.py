@@ -37,7 +37,7 @@ except ImportError:
 
 
 from h2e import jobs, syscheck  # noqa: E402
-from h2e.exe_build import build_exe  # noqa: E402
+from h2e.exe_build import build_exe, python_for_pyinstaller  # noqa: E402
 from h2e.security import (API_TOKEN, is_safe_project_id, project_dir_for,  # noqa: E402
                           projects_root)
 
@@ -404,8 +404,8 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
                         # Write project metadata
                         metadata_file = os.path.join(metadata_dir, 'project.json')
                         print(f"\n💾 Saving metadata to: {metadata_file}")
-                        with open(metadata_file, 'w') as f:
-                            json.dump(project_meta, f, indent=2)
+                        with open(metadata_file, 'w', encoding='utf-8') as f:
+                            json.dump(project_meta, f, indent=2, ensure_ascii=False)
                         
                         print(f"✅ Metadata saved")
                         
@@ -737,8 +737,8 @@ exe = EXE(
                         print(f"✅ Spec file created: {spec_path}")
                         
                         # Create PyInstaller command using spec file
-                        cmd = [
-                            'pyinstaller',
+                        cmd = python_for_pyinstaller() + [
+                            '-m', 'PyInstaller',
                             f'--distpath={output_dir}',
                             f'--workpath={os.path.join(build_dir, "build")}',
                             '--noconfirm',
@@ -985,6 +985,23 @@ class ProjectAnalyzer:
         
         # Determine project type
         self._determine_project_type(analysis)
+
+        # Framework recipes know about Astro, Laravel, PHP, Next static export ...
+        try:
+            from h2e import recipes
+            info = recipes.detect(self.folder_path)
+            analysis['framework'] = info['framework']
+            analysis['support'] = info['support']
+            analysis['notes'] = info['notes']
+            if info['framework'] in ('astro', 'laravel', 'php'):
+                name = {'astro': 'Astro', 'laravel': 'Laravel', 'php': 'PHP'}[info['framework']]
+                if name not in analysis['frameworks']:
+                    analysis['frameworks'].append(name)
+                if name not in analysis['technologies']:
+                    analysis['technologies'].append(name)
+                analysis['projectType'] = {'astro': 'Astro (static site)', 'laravel': 'Laravel (PHP)', 'php': 'PHP site'}[info['framework']]
+        except Exception:
+            pass
         
         return analysis
     
@@ -2180,8 +2197,8 @@ class HTMLToEXEBuilder:
         }
         
         # Write project.json
-        with open(os.path.join(project_path, 'project.json'), 'w') as f:
-            json.dump(project_meta, f, indent=2)
+        with open(os.path.join(project_path, 'project.json'), 'w', encoding='utf-8') as f:
+            json.dump(project_meta, f, indent=2, ensure_ascii=False)
         
         # Create template files
         if template == 'blank':
@@ -2261,8 +2278,8 @@ class HTMLToEXEBuilder:
         except Exception as e:
             return {'error': f'Error scanning folder: {str(e)}'}
     
-    def create_project(self, name, template='blank', author='', version='1.0.0', description=''):
-        """Create a new project"""
+    def create_blank_template(self, path):
+        """Create the blank template files"""
         html = '''<!DOCTYPE html>
 <html lang="en">
 <head>

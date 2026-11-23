@@ -12,7 +12,7 @@ A professional desktop application that converts **HTML/CSS/JavaScript** web pro
 
 ## What Does This App Do?
 
-- **HTML to EXE** — Take any web project (HTML, CSS, JavaScript) and package it as a native Windows desktop application (`.exe`). Users can run it without a browser, without a web server, without anything installed.
+- **HTML to EXE** — Take any web project (HTML, CSS, JavaScript, or a React / Vue / Astro / Next.js / Nuxt project; PHP and Laravel are experimental) and package it as a native Windows desktop application (`.exe`). Users can run it without a browser, without a web server, without anything installed.
 - **Python to EXE** *(Beta)* — Convert Python scripts and projects into standalone `.exe` files. End users don't need Python installed on their machine.
 - **Web to Android APK** *(Beta)* — Convert HTML, React, Vue, and other web projects into native Android APK files. Works best with plain HTML/CSS/JS and React projects.
 
@@ -159,6 +159,24 @@ The builder GUI will open automatically.
 8. Your `.apk` file will be saved to `Documents\HTML2EXE_Android\<app_name>\android\app\build\outputs\apk\debug\`
 
 > **Note:** The first APK build takes **5–15 minutes** — Gradle downloads 1+ GB of dependencies. Subsequent builds are faster.
+
+### Windows EXE Support Matrix
+
+Every row below is covered by an automated build in `tests/` (real `npm` build, real PyInstaller EXE, then the EXE is started and probed).
+
+| Project type | Status | What happens |
+|--------------|--------|--------------|
+| **Plain HTML/CSS/JS** | Supported | Bundled as-is |
+| **Vite** (React, Vue, Svelte, Solid, Preact) | Supported | `npm install` + `npm run build`, serves `dist/` |
+| **Create React App** | Supported | `npm run build`, serves `build/` |
+| **Astro** (static output) | Supported | `npm run build`, serves `dist/`. SSR (`output: 'server'`) is rejected with an explanation |
+| **Next.js** (static export) | Supported | `output: 'export'` is applied temporarily and your `next.config` is restored afterwards. API routes / SSR cannot work in a desktop EXE |
+| **Nuxt 3** | Supported | `nuxt generate`, serves `.output/public` |
+| **Angular / Gatsby / SvelteKit** | Supported (detect + build, not yet covered by an automated real build) | SvelteKit needs `adapter-static` |
+| **PHP** (plain) | Experimental | A portable PHP is downloaded once and bundled into the EXE |
+| **Laravel** | Experimental | Needs `vendor/` (or Composer installed). SQLite database and `.env` are created per user in `%LOCALAPPDATA%` |
+
+Generated apps handle client-side routing (React Router, Vue Router history mode, `/about` -> `about.html`) and check for the WebView2 runtime on start-up.
 
 ### Web to Android Support Matrix
 
@@ -357,7 +375,8 @@ python builder.py
 
 ## Version History
 
-- **v2.0** (Current) — Web to Android APK support, dark theme redesign, copy log output, improved Next.js handling
+- **v2.1** (in progress) — Secured local API, background builds with live log + Cancel, System Check page, Astro / Next.js / Nuxt / PHP / Laravel recipes, SPA routing fix, build self-test
+- **v2.0** — Web to Android APK support, dark theme redesign, copy log output, improved Next.js handling
 - **v1.0** — Initial release with HTML to EXE and Python to EXE
 
 ---

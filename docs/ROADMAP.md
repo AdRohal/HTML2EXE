@@ -81,3 +81,17 @@ This machine currently has no real Python (only the Microsoft Store alias), so e
 ## Phase 0 status (2026-11-23)
 - [x] Local API locked down (token + Origin/Host checks, no wildcard CORS, id sanitising, static path-traversal fix)
 - [x] MIT license, issue templates, CI, security tests
+
+## Phase 1-3 status (2026-11-24)
+- [x] SPA fallback + `page.html` routing + correct MIME types in generated apps (verified in real EXEs)
+- [x] Imports keep `dist/`/`build/`; fresh builds are reused, stale ones rebuilt
+- [x] Background jobs with live log streaming and Cancel (`/api/job-status`, `/api/job-cancel`)
+- [x] System Check page + support matrix; WebView2 check in generated EXEs
+- [x] Module split started: `h2e/` (security, jobs, recipes, exe_build, launcher, php_runtime, syscheck); `builder.py` still holds the HTTP handler, Python-to-EXE and Android code
+- [x] Recipes: Vite, CRA, Astro, Next.js (export patch + restore), Nuxt (real builds pass); Angular, Gatsby, SvelteKit (unit-tested only)
+- [x] PHP runtime bundling (real EXE passes); Laravel (unit-tested plan; **not yet run against a real Laravel install**)
+- [x] Fixed: duplicate `create_project`, UTF-8 project.json, PyInstaller no longer needs to be on PATH
+- [ ] UI was not exercised in a browser in this session (no Chrome available) - run the app once and click through System Check and a build
+- [ ] Python-to-EXE and Android still use legacy code paths (now run as background jobs; log is print-based)
+- [ ] impeccable design findings in builder_ui (contrast, accent borders) still open
+
