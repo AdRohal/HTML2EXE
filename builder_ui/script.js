@@ -312,7 +312,8 @@ function goToPage(page) {
             colors: 'Colors & Theme',
             settings: 'Settings',
             'python-convert': 'Python to EXE',
-            android: 'Web to Android'
+            android: 'Web to Android',
+            'system-check': 'System Check'
         };
         document.getElementById('pageTitle').textContent = pageTitles[page] || (page.charAt(0).toUpperCase() + page.slice(1));
         
@@ -325,6 +326,8 @@ function goToPage(page) {
             loadColors();
         } else if (page === 'android') {
             loadAndroidPage();
+        } else if (page === 'system-check') {
+            loadSystemCheck();
         }
     }
 }
@@ -872,25 +875,16 @@ function buildProject() {
 
 function executeBuild(buildData) {
     // Call backend API to build project
-    fetch('/api/build-project', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(buildData)
-    })
-    .then(response => {
-        // Always parse JSON, regardless of status code
-        return response.json().then(data => {
-            return { status: response.status, data: data };
-        });
-    })
+    showCancelButtons();
+    runJob('/api/build-project', buildData, lines => appendLogLines('buildLog', lines))
     .then(({ status, data }) => {
         stopBuildStepsAnimation('buildSteps', 'progressFill', data.success);
         
         if (data.success) {
             document.getElementById('buildStatus').textContent = '✨ Build complete!';
-            document.getElementById('buildLog').textContent += `✅ Build successful!\n\nEXE Location: ${data.exePath}\n\nYou can now run this file!`;
+            const st = data.selfTest;
+            const verify = st ? (st.ok ? 'Verified: the EXE starts and serves your app.' : 'Warning: the self-test did not pass - check the log above.') : '';
+            document.getElementById('buildLog').textContent += `\n✅ Build successful!\n\nEXE Location: ${data.exePath}\n${verify}\n\nYou can now run this file!`;
             
             // Show open output button
             const outBtn = document.getElementById('openBuildOutputBtn');
@@ -1135,19 +1129,7 @@ function executeConversion(pythonPath, exeName, hideConsole, singleFile, optimiz
         iconData: iconData
     };
     
-    fetch('/api/convert-python-to-exe', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conversionData)
-    })
-    .then(response => {
-        // Always parse JSON, regardless of status code
-        return response.json().then(data => {
-            return { status: response.status, data: data };
-        });
-    })
+    runJob('/api/convert-python-to-exe', conversionData, lines => lines.forEach(l => addPythonConvertLog(l)))
     .then(({ status, data }) => {
         // Check if conversion was successful
         if (data.success) {
@@ -1743,12 +1725,8 @@ function buildAndroid() {
     if (useFolder) payload.folderPath = folderPath;
     else           payload.projectId  = projectId;
 
-    fetch('/api/build-android', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    })
-    .then(r => r.json())
+    runJob('/api/build-android', payload, lines => appendLogLines('androidBuildLog', lines))
+    .then(res => res.data)
     .then(data => {
         clearInterval(stepInterval);
         // Mark all steps done / failed

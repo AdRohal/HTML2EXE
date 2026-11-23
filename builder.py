@@ -36,16 +36,10 @@ except ImportError:
     HAS_PILLOW = False
 
 
-# ---------------------------------------------------------------------------
-# Security helpers
-# ---------------------------------------------------------------------------
-# The builder exposes a local HTTP API that can delete folders and run builds.
-# Every /api/ request must carry this per-launch secret (injected into our own
-# page only) and must come from our own origin. A random website open in the
-# user's browser can neither read the token nor pass the Origin/Host checks.
-API_TOKEN = secrets.token_urlsafe(32)
-
-_SAFE_ID_RE = re.compile(r'^[^\\/:*?"<>|\x00-\x1f]{1,100}$')
+from h2e import jobs, syscheck  # noqa: E402
+from h2e.exe_build import build_exe  # noqa: E402
+from h2e.security import (API_TOKEN, is_safe_project_id, project_dir_for,  # noqa: E402
+                          projects_root)
 
 
 def _pywebview_version():
@@ -55,28 +49,6 @@ def _pywebview_version():
         return version('pywebview')
     except Exception:
         return 'unknown'
-
-
-def projects_root():
-    """Folder that holds project metadata."""
-    return os.path.join(os.path.expanduser('~'), 'Documents', 'HTML2EXE')
-
-
-def is_safe_project_id(value):
-    """True if value is a plain folder name (no separators, no '..')."""
-    return (isinstance(value, str) and value.strip() not in ('', '.', '..')
-            and value == value.strip() and bool(_SAFE_ID_RE.match(value)))
-
-
-def project_dir_for(project_id):
-    """Return the metadata dir for a project id, or None if the id is unsafe."""
-    if not is_safe_project_id(project_id):
-        return None
-    root = os.path.realpath(projects_root())
-    path = os.path.realpath(os.path.join(root, project_id))
-    if os.path.dirname(path) != root:
-        return None
-    return path
 
 
 class BuilderHTTPHandler(SimpleHTTPRequestHandler):
@@ -117,6 +89,7 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
         if path.startswith('/api/'):
             if not self._is_authorized():
                 return self._reject()
+            self.query = parse_qs(parsed.query)
             self.handle_api_request(path[5:], 'GET')
             return
         
@@ -130,6 +103,7 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
             '/style.css': 'builder_ui/style.css',
             '/script.js': 'builder_ui/script.js',
             '/api.js': 'builder_ui/api.js',
+            '/jobs.js': 'builder_ui/jobs.js',
         }
         
         # Serve assets (images, etc)
@@ -189,8 +163,33 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
         
         self.send_error(404, "Not Found")
     
+    query = {}
+
+    ASYNC_ENDPOINTS = ('build-project', 'convert-python-to-exe', 'build-android')
+
+    def _start_async(self, endpoint, body):
+        """Run a long endpoint as a background job and return its id."""
+        def run(job):
+            responder = _CapturingHandler.__new__(_CapturingHandler)
+            responder.captured = None
+            responder.query = {}
+            responder.handle_api_request(endpoint, 'POST', body)
+            data, status = responder.captured or ({'success': False, 'error': 'No result'}, 500)
+            if status >= 400 and not data.get('error'):
+                data['error'] = f'Failed (HTTP {status})'
+            return data
+        job = jobs.start_job(endpoint, run)
+        self.send_json({'success': True, 'jobId': job.id})
+
     def handle_api_request(self, endpoint, method, body=None):
         """Handle API requests"""
+        if method == 'POST' and endpoint in self.ASYNC_ENDPOINTS and body:
+            try:
+                wants_async = bool(json.loads(body).get('async'))
+            except ValueError:
+                wants_async = False
+            if wants_async and not isinstance(self, _CapturingHandler):
+                return self._start_async(endpoint, body)
         try:
             if endpoint == 'projects' and method == 'GET':
                 # List all existing projects from Documents/HTML2EXE folder
@@ -311,328 +310,40 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
                     self.send_json({'error': f'Failed to open folder dialog: {str(e)}'}, 500)
             
             elif endpoint == 'build-project' and method == 'POST':
-                # Build project to EXE using PyInstaller
-                if body:
-                    try:
-                        data = json.loads(body)
-                        project_name = data.get('projectName', '')
-                        project_id = data.get('projectId', '')
-                        icon_path = data.get('iconPath', '')
-                        
-                        print(f"\n{'='*60}")
-                        print(f"🔨 BUILDING EXE: {project_name}")
-                        print(f"{'='*60}")
-                        print(f"Project ID: {project_id}")
-                        if icon_path:
-                            print(f"Icon: {icon_path}")
-                        
-                        if not project_name or not project_id:
-                            self.send_json({'error': 'Project name and ID required'}, 400)
-                            return
-                        
-                        user_home = os.path.expanduser('~')
-                        metadata_dir = project_dir_for(project_id)
-                        if metadata_dir is None:
-                            self.send_json({'error': 'Invalid project ID'}, 400)
-                            return
-                        project_json_path = os.path.join(metadata_dir, 'project.json')
-                        
-                        print(f"\n📂 Looking for metadata: {project_json_path}")
-                        
-                        # Read project metadata
-                        if not os.path.exists(project_json_path):
-                            print(f"❌ Metadata not found!")
-                            self.send_json({'error': f'Project metadata not found'}, 404)
-                            return
-                        
-                        print(f"✅ Metadata found")
-                        
-                        with open(project_json_path, 'r') as f:
-                            project_meta = json.load(f)
-                        
-                        project_folder = project_meta.get('downloadFolder', '')
-                        print(f"📦 Project folder: {project_folder}")
-                        
-                        if not os.path.isdir(project_folder):
-                            print(f"❌ Project folder not found!")
-                            self.send_json({'error': f'Project folder not found: {project_folder}'}, 404)
-                            return
-                        
-                        print(f"✅ Project folder exists")
+                # Build project to EXE (HTML / frameworks / PHP). See h2e/exe_build.py
+                try:
+                    data = json.loads(body) if body else {}
+                    job = jobs.current_job() or jobs.Job('exe')
+                    result = build_exe(data, job)
+                    if result.get('success'):
+                        self.send_json(result)
+                    else:
+                        self.send_json(result, 400)
+                except jobs.JobCancelled:
+                    raise
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    self.send_json({'success': False, 'error': f'Build error: {str(e)}'}, 500)
 
-                        # Auto-build if this is a source project (React/Vue/Angular/etc.)
-                        has_package_json = os.path.exists(os.path.join(project_folder, 'package.json'))
-                        has_src_dir = os.path.isdir(os.path.join(project_folder, 'src'))
-                        has_dist = os.path.isdir(os.path.join(project_folder, 'dist'))
-                        has_build_out = os.path.isdir(os.path.join(project_folder, 'build'))
-                        is_source_project = has_package_json and has_src_dir and not (has_dist or has_build_out)
+            elif endpoint == 'system-check' and method == 'GET':
+                self.send_json(syscheck.run_checks(AndroidBuilder.check_prerequisites))
 
-                        if is_source_project:
-                            print(f"\n📦 Source project detected — running npm build automatically...")
-                            try:
-                                # Run npm install
-                                print(f"  → npm install ...")
-                                r1 = subprocess.run(
-                                    'npm install',
-                                    cwd=project_folder,
-                                    capture_output=True, text=True,
-                                    shell=True
-                                )
-                                if r1.returncode != 0:
-                                    self.send_json({'error': f'npm install failed:\n{r1.stderr}'}, 500)
-                                    return
-                                print(f"  ✅ npm install done")
-
-                                # Run npm run build
-                                print(f"  → npm run build ...")
-                                r2 = subprocess.run(
-                                    'npm run build',
-                                    cwd=project_folder,
-                                    capture_output=True, text=True,
-                                    shell=True
-                                )
-                                if r2.returncode != 0:
-                                    self.send_json({'error': f'npm run build failed:\n{r2.stderr}'}, 500)
-                                    return
-                                print(f"  ✅ npm run build done")
-
-                                # Find the output folder (dist/ or build/)
-                                if os.path.isdir(os.path.join(project_folder, 'dist')):
-                                    project_folder = os.path.join(project_folder, 'dist')
-                                elif os.path.isdir(os.path.join(project_folder, 'build')):
-                                    project_folder = os.path.join(project_folder, 'build')
-                                elif os.path.isdir(os.path.join(project_folder, 'out')):
-                                    project_folder = os.path.join(project_folder, 'out')
-                                else:
-                                    self.send_json({'error': 'npm build succeeded but no dist/, build/, or out/ folder was found.'}, 500)
-                                    return
-                                print(f"  📂 Using built output: {project_folder}")
-                            except FileNotFoundError:
-                                self.send_json({'error': 'npm not found. Please install Node.js from https://nodejs.org/ and try again.'}, 500)
-                                return
-                            except Exception as e:
-                                self.send_json({'error': f'npm build error: {str(e)}'}, 500)
-                                return
-
-                        
-                        # Create build directory
-                        build_dir = os.path.join(metadata_dir, 'build')
-                        os.makedirs(build_dir, exist_ok=True)
-                        
-                        print(f"\n🔧 Creating build script...")
-                        
-                        # Create a Python script that serves the HTML project via HTTP
-                        build_script = f'''
-import os
-import sys
-import threading
-import webview
-from http.server import HTTPServer, SimpleHTTPRequestHandler
-from pathlib import Path
-
-# Locate project directory — bundled inside EXE or original path
-if getattr(sys, "frozen", False):
-    BASE_DIR = sys._MEIPASS
-    PROJECT_DIR = os.path.join(BASE_DIR, "_project")
-else:
-    PROJECT_DIR = r"{project_folder}"
-
-class SilentHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=PROJECT_DIR, **kwargs)
-    def log_message(self, format, *args):
-        pass  # Suppress server logs
-
-def find_free_port():
-    import socket
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("", 0))
-        return s.getsockname()[1]
-
-if __name__ == "__main__":
-    port = find_free_port()
-    server = HTTPServer(("127.0.0.1", port), SilentHandler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-
-    window = webview.create_window(
-        title="{project_name}",
-        url=f"http://127.0.0.1:{{port}}/index.html",
-        width=1024,
-        height=768,
-        resizable=True,
-        background_color="#0f172a"
-    )
-
-    webview.start(debug=False)
-    server.shutdown()
-'''
-                        
-                        build_script_path = os.path.join(build_dir, 'main.py')
-                        with open(build_script_path, 'w') as f:
-                            f.write(build_script)
-                        
-                        print(f"✅ Build script created: {build_script_path}")
-                        
-                        # Build EXE using PyInstaller
-                        output_dir = os.path.join(user_home, 'Downloads')
-                        exe_name = project_name.replace(' ', '_')
-                        
-                        print(f"\n⚙️  Running PyInstaller...")
-                        print(f"Output directory: {output_dir}")
-                        print(f"EXE name: {exe_name}.exe")
-                        
-                        # Handle icon if provided (from base64 encoded file data)
-                        final_icon_path = None
-                        if data.get('iconData'):
-                            try:
-                                icon_data_uri = data.get('iconData', '')
-                                # Parse data URI to get base64 content
-                                if icon_data_uri.startswith('data:'):
-                                    # Extract base64 content from data URI
-                                    base64_content = icon_data_uri.split(',')[1]
-                                    icon_binary = base64.b64decode(base64_content)
-                                    
-                                    # Determine file extension from data URI
-                                    mime_type = icon_data_uri.split(';')[0].split(':')[1]
-                                    if 'png' in mime_type:
-                                        icon_ext = 'png'
-                                    elif 'x-icon' in mime_type or 'vnd.microsoft.icon' in mime_type or 'ico' in mime_type:
-                                        icon_ext = 'ico'
-                                    else:
-                                        icon_ext = 'ico'  # Default to ICO
-                                    
-                                    # Save temporary icon file with explicit binary mode
-                                    temp_icon_path = os.path.join(build_dir, f'temp_icon.{icon_ext}')
-                                    with open(temp_icon_path, 'wb') as f:
-                                        bytes_written = f.write(icon_binary)
-                                        f.flush()  # Force flush to disk
-                                        os.fsync(f.fileno())  # Ensure sync to disk
-                                    
-                                    # Ensure file is written to disk
-                                    import time
-                                    time.sleep(0.2)  # Wait for disk write
-                                    
-                                    print(f"📥 Received icon file: {temp_icon_path} ({icon_ext.upper()})")
-                                    print(f"   File size: {os.path.getsize(temp_icon_path)} bytes (wrote {bytes_written} bytes)")
-                                    print(f"   MIME type detected: {mime_type}")
-                                    
-                                    # Convert PNG to ICO if necessary
-                                    if icon_ext == 'png' and HAS_PILLOW:
-                                        ico_path = os.path.join(build_dir, f'{exe_name}.ico')
-                                        try:
-                                            print(f"🎨 Converting PNG to ICO format...")
-                                            img = Image.open(temp_icon_path)
-                                            # Ensure image is at least 256x256 for better quality
-                                            if img.size[0] < 256 or img.size[1] < 256:
-                                                print(f"  Scaling icon to 256x256")
-                                                img = img.resize((256, 256), Image.Resampling.LANCZOS)
-                                            # Convert to RGB if needed (PNG may have alpha channel)
-                                            if img.mode in ('RGBA', 'LA', 'P'):
-                                                rgb_img = Image.new('RGB', img.size, (255, 255, 255))
-                                                if img.mode == 'RGBA':
-                                                    rgb_img.paste(img, mask=img.split()[-1])
-                                                else:
-                                                    rgb_img.paste(img)
-                                                rgb_img.save(ico_path, 'ICO')
-                                            else:
-                                                img.save(ico_path, 'ICO')
-                                            final_icon_path = ico_path
-                                            print(f"✅ ICO created from PNG: {ico_path}")
-                                            os.remove(temp_icon_path)  # Clean up temp PNG
-                                        except Exception as e:
-                                            print(f"Warning: Failed to convert PNG to ICO: {e}")
-                                            final_icon_path = temp_icon_path  # Use PNG as fallback
-                                    else:
-                                        # Already ICO or Pillow not available
-                                        final_icon_path = temp_icon_path
-                                        print(f"✅ Using icon file: {final_icon_path}")
-                            except Exception as e:
-                                print(f"Warning: Failed to process icon data: {e}")
-                        
-                        # Create build subdirectories
-                        os.makedirs(os.path.join(build_dir, 'build'), exist_ok=True)
-
-                        # PyInstaller command (use absolute Windows paths)
-                        cmd = [
-                            'pyinstaller',
-                            '--onefile',
-                            '--windowed',
-                            '--noupx',
-                            '-y',  # Overwrite without asking
-                            f'--name={exe_name}',
-                            f'--distpath={output_dir}',
-                            f'--workpath={os.path.join(build_dir, "build")}',
-                            f'--specpath={build_dir}',
-                            '--hidden-import=webview',
-                            '--hidden-import=webview.js',
-                            # Bundle the project HTML/CSS/JS files inside the EXE
-                            f'--add-data={project_folder}{os.pathsep}_project',
-                        ]
-                        
-                        # Add icon if available - use absolute path for Windows
-                        if final_icon_path and os.path.exists(final_icon_path):
-                            abs_icon_path = os.path.abspath(final_icon_path)
-                            print(f"📌 Icon file ready for PyInstaller:")
-                            print(f"   Path: {abs_icon_path}")
-                            print(f"   Exists: {os.path.exists(abs_icon_path)}")
-                            print(f"   Size: {os.path.getsize(abs_icon_path)} bytes")
-                            
-                            # PyInstaller handles Windows paths with backslashes correctly
-                            cmd.append(f'--icon={abs_icon_path}')
-                        
-                        cmd.append(build_script_path)
-                        
-                        print(f"Full PyInstaller command:")
-                        print(f"  {' '.join(cmd)}\n")
-                        
-                        # Run PyInstaller
-                        result = subprocess.run(cmd, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
-                        
-                        print(f"PyInstaller output:\n{result.stdout}")
-                        
-                        if result.stderr and result.stderr.strip():
-                            print(f"PyInstaller warnings/errors:\n{result.stderr}")
-                        
-                        if result.returncode != 0:
-                            print(f"\n❌ Build failed!")
-                            print(f"Error: {result.stderr}")
-                            self.send_json({
-                                'error': f'Build failed: {result.stderr}'
-                            }, 500)
-                            return
-                        
-                        exe_path = os.path.join(output_dir, f'{exe_name}.exe')
-                        
-                        print(f"\n✅ PyInstaller completed successfully")
-                        print(f"Checking for EXE at: {exe_path}")
-                        
-                        if os.path.exists(exe_path):
-                            print(f"✨ EXE CREATED SUCCESSFULLY!")
-                            print(f"Size: {os.path.getsize(exe_path) / (1024*1024):.2f} MB")
-                            print(f"Location: {exe_path}")
-                            print(f"{'='*60}\n")
-                            
-                            self.send_json({
-                                'success': True,
-                                'message': f'EXE created successfully!',
-                                'exePath': exe_path,
-                                'exeName': f'{exe_name}.exe'
-                            })
-                        else:
-                            print(f"❌ EXE was not created at expected location!")
-                            self.send_json({
-                                'error': 'EXE was not created'
-                            }, 500)
-                    
-                    except Exception as e:
-                        print(f"\n❌ BUILD ERROR: {str(e)}")
-                        import traceback
-                        traceback.print_exc()
-                        self.send_json({'error': f'Build error: {str(e)}'}, 500)
+            elif endpoint == 'job-status' and method == 'GET':
+                job = jobs.get_job((self.query.get('id') or [''])[0])
+                if not job:
+                    self.send_json({'error': 'Unknown job'}, 404)
                 else:
-                    self.send_json({'error': 'No build data provided'}, 400)
-            
+                    since = int((self.query.get('since') or ['0'])[0] or 0)
+                    self.send_json(job.snapshot(since))
+
+            elif endpoint == 'job-cancel' and method == 'POST':
+                data = json.loads(body) if body else {}
+                job = jobs.get_job(data.get('id', ''))
+                if job:
+                    job.cancel()
+                self.send_json({'success': bool(job)})
+
             elif endpoint == 'create-project' and method == 'POST':
                 # Create/register a new project
                 if body:
@@ -714,9 +425,9 @@ if __name__ == "__main__":
                                         os.remove(dst)
                                 
                                 if os.path.isdir(src):
-                                    if item not in ['node_modules', '.git', 'dist', 'build', '.vscode', '__pycache__']:
+                                    if item not in ['node_modules', '.git', '.vscode', '__pycache__']:
                                         print(f"  📂 Copying folder: {item}")
-                                        shutil.copytree(src, dst, ignore=shutil.ignore_patterns('node_modules', '.git', 'dist', 'build', '.vscode', '__pycache__'))
+                                        shutil.copytree(src, dst, ignore=shutil.ignore_patterns('node_modules', '.git', '.vscode', '__pycache__'))
                                         file_count += 1
                                 else:
                                     print(f"  📄 Copying file: {item}")
@@ -1230,6 +941,14 @@ exe = EXE(
     def log_message(self, format, *args):
         """Suppress server logging"""
         pass
+
+
+class _CapturingHandler(BuilderHTTPHandler):
+    """Runs API code inside a background job and captures send_json()."""
+    captured = None
+
+    def send_json(self, data, status=200):
+        self.captured = (data, status)
 
 
 class ProjectAnalyzer:

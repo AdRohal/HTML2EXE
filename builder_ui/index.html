@@ -74,6 +74,10 @@
                 <!-- Settings Section -->
                 <div class="nav-section">
                     <div class="nav-section-title">SETTINGS</div>
+                    <button class="nav-item" data-page="system-check">
+                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                        <span>System Check</span>
+                    </button>
                     <button class="nav-item" data-page="settings">
                         <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
                         <span>Settings</span>
@@ -514,6 +518,7 @@
                             <p id="buildStatus">Initializing build...</p>
                             <div id="buildLog" class="build-log"></div>
                             <div class="log-actions">
+                            <button class="btn-secondary cancel-job-btn" style="display:none;" onclick="cancelCurrentJob()">Cancel build</button>
                             <button id="openBuildOutputBtn" class="btn-secondary open-output-btn" style="display:none;" onclick="openOutputFolder('build')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Open Output Folder</button>
                             <button class="btn-secondary copy-log-btn" onclick="copyLog('buildLog')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Output</button>
                             </div>
@@ -544,6 +549,24 @@
                 </div>
                 
                 <!-- Settings Page -->
+                <div class="page" id="system-check-page">
+                    <div class="page-content">
+                        <div class="page-header">
+                            <h2>System Check</h2>
+                            <button class="btn-secondary" onclick="loadSystemCheck()">Check again</button>
+                        </div>
+                        <p class="page-intro">What this PC has installed, and which features each tool unlocks.</p>
+                        <div class="settings-section">
+                            <h3>Tools</h3>
+                            <div id="systemCheckList" class="check-list"></div>
+                        </div>
+                        <div class="settings-section">
+                            <h3>Project types</h3>
+                            <div id="supportMatrix" class="matrix"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="page" id="settings-page">
                     <div class="page-content">
                         <h2>Settings</h2>
@@ -860,6 +883,7 @@
     </div>
     
     <script src="api.js"></script>
+    <script src="jobs.js"></script>
     <script src="script.js"></script>
 
     <!-- Toast Container -->
