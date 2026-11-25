@@ -25,7 +25,7 @@ if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
 if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
-from h2e import jobs, python_builder, syscheck, templates  # noqa: E402
+from h2e import dashboard, iconfinder, jobs, python_builder, syscheck, templates  # noqa: E402
 from h2e import secrets as envsecrets  # noqa: E402
 from h2e import workspace  # noqa: E402
 from h2e.analyzer import ProjectAnalyzer, walk_project  # noqa: E402
@@ -316,6 +316,7 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
                     job = jobs.current_job() or jobs.Job('exe')
                     result = build_exe(data, job)
                     if result.get('success'):
+                        dashboard.record_for_project(data.get('projectId'), result)
                         self.send_json(result)
                     else:
                         self.send_json(result, 400)
@@ -492,6 +493,26 @@ class BuilderHTTPHandler(SimpleHTTPRequestHandler):
                         return
                     result, status = python_builder.convert(payload)
                     self.send_json(result, status)
+
+            elif endpoint == 'find-icon' and method == 'POST':
+                data = json.loads(body) if body else {}
+                folder = str(data.get('folderPath', ''))
+                found = iconfinder.find_icon(os.path.abspath(folder)) if folder and os.path.isdir(folder) else None
+                if found:
+                    found.pop('path', None)               # the page needs the picture and the name, not the disk path
+                self.send_json({'success': True, 'found': bool(found), **(found or {})})
+
+            elif endpoint == 'dashboard' and method == 'GET':
+                self.send_json(dashboard.stats())
+
+            elif endpoint == 'analyze-python' and method == 'POST':
+                data = json.loads(body) if body else {}
+                try:
+                    self.send_json(python_builder.analyze(str(data.get('pythonPath', ''))))
+                except FileNotFoundError as exc:
+                    self.send_json({'error': str(exc)}, 404)
+                except ValueError as exc:
+                    self.send_json({'error': str(exc)}, 400)
 
             elif endpoint == 'env-scan' and method == 'POST':
                 data = json.loads(body) if body else {}

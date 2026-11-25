@@ -120,7 +120,7 @@ The builder GUI will open automatically.
 
 ### Converting HTML to EXE
 
-1. Open the app (`python builder.py`). **Build app** is the first screen.
+1. Open the app (`python builder.py`). **Dashboard** is the first screen (counts, recent builds, quick start); **Website to EXE** builds websites.
 2. Click **Browse for folder** (or paste a path and press Enter). Pick the folder that holds your `index.html`, or your React / Vue / Astro / Next.js / Nuxt / Angular / SvelteKit / PHP / Laravel project.
 3. Check what was detected, set the app name, and optionally an icon and window size. Choose what to create: a **portable app** (one .exe) or an **installer** (see below).
 4. Click **Build EXE** (or **Build installer**). A strip of steps (Prepare, Build site, Package, Verify) shows progress with a live log and a Cancel button.
@@ -219,7 +219,11 @@ Generated apps handle client-side routing (React Router, Vue Router history mode
 
 > **For Android:** Capacitor provides limited file system and device access APIs. Most web projects work unchanged, but server-dependent features won't function without a backend.
 
-### Python to EXE
+### Building the release installer
+
+`python tools/build_release.py` creates `release/HTML2EXE-Installer-V<version>.exe` (+ a `.sha256` file) for GitHub Releases. It packs HTML2EXE without `tests/`, `docs/`, project notes or tooling folders, and wraps it in the branded installer (license page, per-user or all-users install, Ko-fi button). The version comes from `h2e/dashboard.py` (`APP_VERSION`). The installer is unsigned, so Windows SmartScreen may show a warning until it has a reputation.
+
+## Python to EXE
 
 | Supported | Notes |
 |-----------|-------|
@@ -340,6 +344,18 @@ program). So:
 
 ---
 
+## Python to EXE
+
+Pick a script or project folder. The builder analyses it first (entry point, window app or command-line, `requirements.txt`, data files) and then builds:
+
+- **Portable or installer**: one `.exe` / one folder, or a `Setup.exe` (Inno Setup when installed, otherwise the built-in installer) with version and publisher. Installed programs remove themselves with `App.exe --uninstall`, and appear in Windows Apps.
+- **Clean environment**: with a `requirements.txt` the project gets its own cached virtual environment, so the result only contains what the project lists. Turn it off to build with this PC's Python.
+- **Icon** (PNG or ICO), version details in the file's Properties, optional administrator prompt, optimised bytecode, hidden imports.
+- A `.env` file is never bundled. Missing modules found in PyInstaller's warnings are reported after the build.
+- Bulky build folders are deleted afterwards; the project is saved under **Projects** so it can be rebuilt.
+
+Tests: `python tests/e2e_python.py` and `python tests/e2e_python_installer.py [builtin|inno]` (real build, silent install, run, uninstall).
+
 ## Storage Locations
 
 | What | Where |
@@ -445,7 +461,7 @@ pip install -r requirements.txt
 python builder.py
 
 # 3a. Convert HTML to EXE
-#     - Build app → Browse for folder → Build EXE
+#     - Website to EXE → Browse for folder → Build EXE
 #
 # 3b. Convert Python to EXE
 #     - Go to "Python to EXE" → select script → build

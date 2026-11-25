@@ -38,7 +38,7 @@ function toast(message, bad = false) {
   setTimeout(() => t.remove(), 3200);
 }
 
-const S = { projects: [], system: null, view: 'build' };
+const S = { projects: [], system: null, view: 'dashboard' };
 const REQUIRED_TOOLS = ['python', 'pyinstaller', 'pywebview', 'webview2'];
 const NODE_FRAMEWORKS = ['vite', 'cra', 'astro', 'nextjs', 'nuxt', 'angular', 'gatsby', 'sveltekit', 'generic'];
 
@@ -69,9 +69,9 @@ function readFileAsDataURL(file) {
 }
 
 /* ------------------------------------------------------------------ router */
-const VIEWS = ['build', 'projects', 'python', 'android', 'system'];
+const VIEWS = ['dashboard', 'build', 'projects', 'python', 'android', 'system'];
 function go(view, { focus = true } = {}) {
-  if (!VIEWS.includes(view)) view = 'build';
+  if (!VIEWS.includes(view)) view = 'dashboard';
   S.view = view;
   $$('.nav').forEach((n) => {
     if (n.dataset.view === view) n.setAttribute('aria-current', 'page'); else n.removeAttribute('aria-current');
@@ -83,9 +83,14 @@ function go(view, { focus = true } = {}) {
   if (view === 'system') loadSystem();
   if (view === 'android') loadAndroid();
   if (view === 'build') renderRecent();
+  if (view === 'dashboard') loadDashboard();
+  if (view === 'python') renderPyRecent();
   if (focus) $('#h-' + view)?.focus({ preventScroll: true });
 }
 $$('.nav').forEach((n) => n.addEventListener('click', () => go(n.dataset.view)));
+
+// Links inside this window do not open the system browser: ask the builder to do it (https only).
+$('#kofiLink').addEventListener('click', (e) => { e.preventDefault(); api('open-url', { url: e.currentTarget.href }); });
 
 function stage(view, name) {
   const root = $('#view-' + view);
@@ -211,7 +216,7 @@ function failParts(data, again) {
 const openFolder = (path) => api('open-folder', { folderPath: path }).then((r) => { if (r.success === false) toast(r.error || 'Could not open the folder', true); });
 
 /* ================================================================== BUILD */
-const B = { scan: null, folder: '', iconData: '', busy: false };
+const B = { scan: null, folder: '', iconData: '', iconFile: '', auto: null, autoOff: false, busy: false };
 const bPath = $('#bPath'), bMsg = $('#bMsg');
 
 async function browseFolder(into) {
@@ -268,6 +273,7 @@ function enterReady(presetName) {
   $('#rName').value = presetName || suggestName(B.scan.folderName);
   validateName();
   clearIcon();
+  B.folderToken = B.folder; rIcon.detect(B.folder);
   stage('build', 'ready');
   $('#main').scrollTop = 0;
   $('#rName').focus({ preventScroll: true });
@@ -304,15 +310,31 @@ $$('input[name="outType"]').forEach((r) => r.addEventListener('change', () => {
   validateName();
 }));
 
-function clearIcon() { B.iconData = ''; $('#rIcon').value = ''; $('#rIconPrev').hidden = true; $('#rIconName').textContent = 'Default icon'; $('#rIconClear').hidden = true; }
-$('#rIcon').addEventListener('change', async (e) => {
-  const f = e.target.files[0];
-  if (!f) return clearIcon();
-  B.iconData = await readFileAsDataURL(f);
-  $('#rIconPrev').src = B.iconData; $('#rIconPrev').hidden = false;
-  $('#rIconName').textContent = f.name; $('#rIconClear').hidden = false;
-});
-$('#rIconClear').addEventListener('click', clearIcon);
+/* Icon picker shared by the website and Python pages: own choice > icon found in the project > default */
+function iconPicker(S, p) {
+  const el = { img: $('#' + p + 'IconPrev'), cube: $('#' + p + 'Cube'), name: $('#' + p + 'IconName'), clear: $('#' + p + 'IconClear'), file: $('#' + p + 'Icon') };
+  const pk = {
+    paint() {
+      if (S.iconData) { el.img.src = S.iconData; el.img.hidden = false; el.cube.toggleAttribute("hidden", true); el.name.textContent = S.iconFile; el.clear.hidden = false; }
+      else if (S.auto && !S.autoOff) { el.img.src = S.auto.dataUri; el.img.hidden = false; el.cube.toggleAttribute("hidden", true); el.name.textContent = 'Found in your project: ' + S.auto.relative; el.clear.hidden = false; }
+      else { el.img.hidden = true; el.cube.toggleAttribute("hidden", false); el.name.textContent = S.auto ? 'Default icon (the one found was removed)' : 'Default icon'; el.clear.hidden = true; }
+    },
+    reset() { S.iconData = ''; S.iconFile = ''; S.auto = null; S.autoOff = false; el.file.value = ''; pk.paint(); },
+    async detect(folder) {
+      const r = await api('find-icon', { folderPath: folder });
+      if (r && r.found && S.folderToken === folder) { S.auto = r; pk.paint(); }
+    },
+  };
+  el.file.addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    S.iconData = f ? await readFileAsDataURL(f) : ''; S.iconFile = f ? f.name : '';
+    pk.paint();
+  });
+  el.clear.addEventListener('click', () => { if (S.iconData) { S.iconData = ''; S.iconFile = ''; el.file.value = ''; } else S.autoOff = true; pk.paint(); });
+  return pk;
+}
+const rIcon = iconPicker(B, 'r');
+const clearIcon = () => rIcon.reset();
 
 $('#bBrowse').addEventListener('click', async () => { const p = await browseFolder(bPath); if (p) scanFolder(p); });
 $('#bPathForm').addEventListener('submit', (e) => { e.preventDefault(); scanFolder(bPath.value); });
@@ -358,7 +380,7 @@ function startBuild() {
       const made = await api('create-project', { name, folderPath: folder, author: '', version: '1.0.0', description: '' });
       if (!made.success) return { error: made.error || 'Could not register the project.' };
       loadProjects();
-      return { endpoint: 'build-project', payload: { projectName: name, projectId: name, iconData: icon || undefined, options } };
+      return { endpoint: 'build-project', payload: { projectName: name, projectId: name, iconData: icon || undefined, autoIcon: !B.autoOff, options } };
     },
     render: (kind, data) => {
       if (kind === 'ok') {
@@ -390,7 +412,7 @@ function resetBuild() {
 /* recent list on the Build page */
 function renderRecent() {
   const list = $('#bRecent'), first = $('#bFirstRun');
-  const items = [...S.projects].sort((a, b) => String(b.created).localeCompare(String(a.created))).slice(0, 5);
+  const items = S.projects.filter((p) => !isPython(p)).sort((a, b) => String(b.created).localeCompare(String(a.created))).slice(0, 5);
   list.replaceChildren(...items.map((p) => h('li', {},
     h('div', { class: 'r-name' }, p.name, h('span', { class: 'r-path', text: p.sourceFolder || p.downloadFolder || '' })),
     h('span', { class: 'chip', text: projectKind(p) }),
@@ -403,6 +425,7 @@ const projectKind = (p) => (p.analysis?.frameworkLabel?.split(' (')[0] || p.anal
 
 function rebuild(p) {
   const path = (p.sourceFolder && p.sourceFolder.trim()) || p.downloadFolder;
+  if (isPython(p)) { go('python', { focus: false }); pyAnalyse(path, p.name); return; }
   go('build', { focus: false });
   scanFolder(path, p.name);
 }
@@ -543,37 +566,76 @@ function renderProjects() {
 }
 
 /* ================================================================== PYTHON */
-const PY = { iconData: '' };
-$('#pyBrowse').addEventListener('click', async () => { const p = await browseFolder($('#pyPath')); if (p && $('#pyName').value === 'MyApp') $('#pyName').value = suggestName(p.split(/[\\/]/).pop()); });
-$('#pyIcon').addEventListener('change', async (e) => {
-  const f = e.target.files[0];
-  PY.iconData = f ? await readFileAsDataURL(f) : '';
-  $('#pyIconPrev').hidden = !f; if (f) $('#pyIconPrev').src = PY.iconData;
-  $('#pyIconName').textContent = f ? f.name : 'Default icon';
-});
+const PY = { iconData: '', iconFile: '', auto: null, autoOff: false, entry: '', path: '' };
+const isPython = (p) => p.analysis?.framework === 'python';
+const pyOutput = () => ($('input[name="pyOut"]:checked') || {}).value || 'portable';
+async function pyAnalyse(path, presetName) {
+  const msg = $('#pyMsg');
+  path = clean(path);
+  msg.className = 'msg'; msg.textContent = '';
+  if (!path) { msg.textContent = 'Choose a folder or a .py file first.'; $('#pyPath').focus(); return; }
+  $('#pyPath').value = path;
+  msg.className = 'msg info'; msg.textContent = 'Reading the project...';
+  const r = await api('analyze-python', { pythonPath: path });
+  msg.className = 'msg'; msg.textContent = '';
+  if (!r || r.error) { msg.textContent = (r && r.error) || 'Could not read that project.'; return; }
+  PY.entry = r.entry; PY.path = path;
+  $('#pyShown').textContent = path; $('#pyShown').title = path;
+  const detect = $('#pyDetect');
+  detect.replaceChildren(
+    h('span', { class: 'chip chip-ink', text: r.projectType }),
+    h('span', { class: 'chip', text: 'Entry: ' + r.entry }),
+    h('span', { class: 'chip', text: r.requirements.file ? `${r.requirements.packages.length} packages in ${r.requirements.file}` : 'No requirements file' }),
+    ...(r.pyFiles > 1 ? [h('span', { class: 'chip', text: r.pyFiles + ' .py files' })] : []));
+  $('#pyNotes').replaceChildren(...r.warnings.map((n) => h('li', { html: ico('warn') }, h('span', { text: n }))));
+  $('#pyName').value = presetName || suggestName(r.folderName);
+  $('#pyHide').checked = r.gui;
+  pyIcon.reset(); PY.folderToken = r.folder; pyIcon.detect(r.folder);
+  stage('python', 'ready');
+  $('#main').scrollTop = 0;
+}
+$('#pyBrowse').addEventListener('click', async () => { const p = await browseFolder($('#pyPath')); if (p) pyAnalyse(p); });
+$('#pyPathForm').addEventListener('submit', (e) => { e.preventDefault(); pyAnalyse($('#pyPath').value); });
+$('#pyChange').addEventListener('click', () => { stage('python', 'choose'); $('#pyBrowse').focus(); });
+function renderPyRecent() {
+  const list = $('#pyRecent'), first = $('#pyFirstRun');
+  const items = S.projects.filter(isPython).sort((a, b) => String(b.created).localeCompare(String(a.created))).slice(0, 5);
+  list.replaceChildren(...items.map((p) => h('li', {},
+    h('div', { class: 'r-name' }, p.name, h('span', { class: 'r-path', text: p.sourceFolder || '' })),
+    h('span', { class: 'chip', text: 'Python' }),
+    h('button', { class: 'btn btn-sm', type: 'button', onclick: () => rebuild(p), html: ico('refresh') }, 'Rebuild'))));
+  list.hidden = !items.length; first.hidden = !!items.length; $('#h-pyrecent').hidden = !items.length;
+}
+$$('input[name="pyOut"]').forEach((r) => r.addEventListener('change', () => { $('#pyInstallerFields').hidden = pyOutput() !== 'installer'; }));
+const pyIcon = iconPicker(PY, 'py');
 $('#pyForm').addEventListener('submit', (e) => {
   e.preventDefault();
-  const path = clean($('#pyPath').value), name = $('#pyName').value.trim();
-  if (!path) return fieldError($('#pyPath'), 'Choose a script or project folder first.');
+  const path = PY.path, name = $('#pyName').value.trim();
   if (!name) return fieldError($('#pyName'), 'Give the EXE a name.');
-  const back = () => { stage('python', 'form'); };
+  const back = () => { stage('python', 'ready'); };
   stage('python', 'job');
   runJob($('#view-python [data-stage="job"]'), {
-    title: `Converting ${name}`,
+    title: `Building ${name}`,
     steps: [
       { label: 'Analyse' },
-      { label: 'Package', rx: /Running PyInstaller|PyInstaller|Spec file/i },
+      { label: 'Environment', rx: /environment|Requirements unchanged|Installing \d+ requirement/i },
+      { label: 'Package', rx: /Running PyInstaller|Spec file/i },
+      ...(pyOutput() === 'installer' ? [{ label: 'Installer', rx: /Installer engine|Packaging the installer|Inno/i }] : []),
       { label: 'Finish', rx: /BUILD SUCCESSFUL/i },
     ],
-    start: async () => ({ endpoint: 'convert-python-to-exe', payload: { pythonPath: path, exeName: name, hideConsole: $('#pyHide').checked, singleFile: $('#pySingle').checked, optimize: $('#pyOpt').checked, iconData: PY.iconData || undefined } }),
+    start: async () => ({ endpoint: 'convert-python-to-exe', payload: { pythonPath: path, exeName: name, entry: PY.entry || undefined, hideConsole: $('#pyHide').checked, singleFile: $('#pySingle').checked, optimize: $('#pyOpt').checked, isolated: $('#pyIsolated').checked, uacAdmin: $('#pyAdmin').checked, outputType: pyOutput(), appVersion: $('#pyVersion').value.trim() || '1.0.0', publisher: $('#pyPublisher').value.trim(), iconData: PY.iconData || undefined, autoIcon: !PY.autoOff } }),
     render: (kind, data) => {
       if (kind === 'ok') return resultBlock('ok', [
         h('div', { class: 'result-name', text: data.exeName || name + '.exe' }),
-        h('div', { class: 'result-meta' }, data.size && h('span', { html: 'Size <b>' + data.size + '</b>' })),
+        h('div', { class: 'result-meta' }, data.size && h('span', { html: 'Size <b>' + data.size + '</b>' }),
+          h('span', { html: 'Type <b>' + (data.kind === 'installer' ? 'Installer' : 'Portable') + '</b>' }),
+          data.isolated && h('span', { html: 'Clean environment <b>' + data.packages + ' packages</b>' })),
         h('div', { class: 'result-path', text: data.exePath || '' }),
+        installerNote(data),
+        ...(data.warnings || []).map((w) => h('p', { class: 'env-warn', role: 'alert', text: w })),
         h('div', { class: 'result-actions' },
           h('button', { class: 'btn btn-primary', type: 'button', html: ico('folder'), onclick: () => openFolder(dirname(data.exePath)) }, 'Open folder'),
-          h('button', { class: 'btn', type: 'button', onclick: back, text: 'Convert another' })),
+          h('button', { class: 'btn', type: 'button', onclick: back, text: 'Build another' })),
       ]);
       if (kind === 'stop') return resultBlock('stop', [h('p', { class: 'result-text', text: 'The conversion was cancelled.' }), h('div', { class: 'result-actions' }, h('button', { class: 'btn btn-primary', type: 'button', onclick: back, text: 'Back to settings' }))]);
       return resultBlock('fail', failParts(data, { label: 'Back to settings', fn: back }));
@@ -601,7 +663,7 @@ async function loadAndroid() {
 function renderAndroidRecent() {
   const box = $('#aRecent');
   if (!box) return;
-  const items = [...S.projects].sort((a, b) => String(b.created).localeCompare(String(a.created))).slice(0, 6);
+  const items = S.projects.filter((p) => !isPython(p)).sort((a, b) => String(b.created).localeCompare(String(a.created))).slice(0, 6);
   box.replaceChildren(...items.map((p) => h('button', { class: 'chip chip-btn', type: 'button', onclick: () => { $('#aPath').value = (p.sourceFolder && p.sourceFolder.trim()) || p.downloadFolder; $('#aName').value = p.name; syncPkg(); }, text: p.name })));
 }
 const syncPkg = () => { $('#aPkg').value = 'com.example.' + (($('#aName').value || 'myapp').toLowerCase().replace(/[^a-z0-9]+/g, '') || 'myapp'); };
@@ -671,16 +733,35 @@ function renderSystem() {
     h('div', { class: 'sys-name', text: f.label.split(' (')[0] }),
     h('div', { class: 'sys-detail', text: f.label.includes(' (') ? '(' + f.label.split(' (').slice(1).join(' (') : '' }),
     h('div')));
-  body.replaceChildren(
+  body.replaceChildren(h('div', { class: 'sys-split' },
     h('div', { class: 'sys-group' }, h('h2', { class: 'sec', text: 'Tools' }), h('div', { class: 'sys-rows' }, rows)),
-    h('div', { class: 'sys-group' }, h('h2', { class: 'sec', text: 'What you can build' }), h('div', { class: 'sys-rows' }, fw)));
+    h('div', { class: 'sys-group' }, h('h2', { class: 'sec', text: 'What you can build' }), h('div', { class: 'sys-rows' }, fw))));
 }
 $('#sysRefresh').addEventListener('click', async () => { S.system = null; await loadSystem(); toast('System checked'); });
+
+/* ================================================================== DASHBOARD */
+async function loadDashboard() {
+  const d = await api('dashboard');
+  if (!d || d.error) return;
+  $('#dProjects').textContent = d.projects;
+  $('#dBuilt').textContent = d.builtApps;
+  $('#dAvg').textContent = d.avgSizeMb == null ? '-' : (d.avgSizeMb >= 1000 ? (d.avgSizeMb / 1024).toFixed(1) + ' GB' : '~' + Math.round(d.avgSizeMb) + ' MB');
+  $('#dPython').textContent = d.python;
+  $('#appVersion').textContent = 'V' + d.version;
+  const list = $('#dRecent');
+  list.replaceChildren(...d.recent.map((r) => h('li', {},
+    h('div', { class: 'r-name' }, r.name, h('span', { class: 'r-path', text: `${r.kind === 'installer' ? 'Installer' : 'Portable'} · ${r.sizeMb} MB · ${fmtDate(r.at)}` })),
+    h('span', { class: 'chip', text: r.python ? 'Python' : 'Website' }),
+    h('button', { class: 'btn btn-sm icon-btn', type: 'button', 'aria-label': 'Open folder of ' + r.name, title: 'Open folder', onclick: () => openFolder(dirname(r.exePath)), html: ico('folder') }))));
+  list.hidden = !d.recent.length;
+  $('#dNoBuilds').hidden = !!d.recent.length;
+}
+$$('[data-go]').forEach((b) => b.addEventListener('click', () => go(b.dataset.go)));
 
 /* ================================================================== start */
 window.addEventListener('hashchange', () => { const v = location.hash.slice(1); if (v !== S.view) go(v, { focus: false }); });
 (async function init() {
-  go((location.hash || '#build').slice(1), { focus: false });
+  go((location.hash || '#dashboard').slice(1), { focus: false });
   await loadProjects();
   renderRecent();
   if (S.view === 'build') $('#bBrowse').focus({ preventScroll: true });

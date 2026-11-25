@@ -9,7 +9,7 @@ import sys
 import time
 import uuid
 
-from . import installer, jobs, recipes, secrets, workspace
+from . import iconfinder, installer, jobs, recipes, secrets, workspace
 from .launcher import render_launcher
 from .recipes import BuildError
 from .security import project_dir_for
@@ -257,7 +257,14 @@ def _build_exe(data, job):
     with open(launcher_path, 'w', encoding='utf-8') as fh:
         fh.write(render_launcher(config))
 
-    icon_path = process_icon(data.get('iconData'), build_dir, exe_name, job)
+    icon_data = data.get('iconData')
+    if not icon_data and data.get('autoIcon', True) is not False:
+        icon_data, why = iconfinder.auto_icon_data(source_folder if source_exists else project_folder)
+        if icon_data:
+            job.log(f'No icon chosen - using the one found in your project: {why}')
+        else:
+            job.log('No icon chosen and none found in the project - the app gets the default icon')
+    icon_path = process_icon(icon_data, build_dir, exe_name, job)
 
     # -- PyInstaller -----------------------------------------------------------
     work = os.path.join(build_dir, 'work')

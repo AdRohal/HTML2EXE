@@ -229,80 +229,7 @@ def start_php():
 
 
 # ------------------------------------------------------------------ uninstall (installer builds)
-__WINSHELL__
-
-UNINSTALL_KEY = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + CONFIG.get("app_key", "")
-
-
-def _ask(text, default_yes=False):
-    try:
-        flags = 0x24 | (0 if default_yes else 0x100)         # MB_YESNO | MB_ICONQUESTION (| default button No)
-        return ctypes.windll.user32.MessageBoxW(0, text, CONFIG.get("title", "App"), flags) == 6
-    except Exception:
-        return False
-
-
-def _registered_location():
-    """Where Windows believes this app is installed (Apps & features), or None."""
-    try:
-        import winreg
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, UNINSTALL_KEY) as key:
-            return winreg.QueryValueEx(key, "InstallLocation")[0]
-    except OSError:
-        return None
-
-
-def _delete_script(folders, script_path):
-    """A batch file that removes the folders once this program has exited, retrying while files are in use."""
-    lines = ["@echo off"]
-    for number, folder in enumerate(folders):
-        lines += [
-            "for /l %%i in (1,1,40) do (",
-            '  rmdir /s /q "%s" >nul 2>&1' % folder,
-            '  if not exist "%s" goto done%d' % (folder, number),
-            "  ping -n 2 127.0.0.1 >nul",
-            ")",
-            ":done%d" % number,
-        ]
-    lines.append('(goto) 2>nul & del "%~f0"')
-    with open(script_path, "w", encoding="utf-8") as fh:
-        fh.write("\r\n".join(lines) + "\r\n")
-
-
-def uninstall(quiet=False, install_dir=None, ask=None, spawn=None):
-    """Remove the installed app: shortcuts, Apps & features entry and (after exit) its folder. Returns an exit code."""
-    import winreg
-    ask = ask or _ask
-    spawn = spawn or subprocess.Popen
-    title = CONFIG.get("title", "App")
-    install_dir = os.path.abspath(install_dir or os.path.dirname(os.path.abspath(sys.executable)))
-    registered = _registered_location()
-    # Safety: only ever delete the folder Windows has registered for this app (never "wherever this exe happens to be").
-    if not registered or os.path.normcase(os.path.abspath(registered)) != os.path.normcase(install_dir) \
-            or os.path.dirname(install_dir) == install_dir:
-        if not quiet:
-            fatal("This copy of %s is not the installed one, so it will not remove anything. "
-                  "Use Apps & features in Windows settings." % title)
-        return 1
-    if not quiet and not ask("Remove %s from this computer?" % title, True):
-        return 0
-    for folder in (desktop_dir(), start_menu_dir()):
-        try:
-            os.remove(os.path.join(folder, title + ".lnk"))
-        except OSError:
-            pass
-    try:
-        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, UNINSTALL_KEY)
-    except OSError:
-        pass
-    doomed = [install_dir]
-    data_dir = os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), CONFIG.get("app_id", "H2EApp"))
-    if not quiet and os.path.isdir(data_dir) and ask("Also delete the saved data and settings of %s?" % title, False):
-        doomed.append(data_dir)
-    script = os.path.join(os.environ.get("TEMP", install_dir), CONFIG.get("app_key", "app") + "-uninstall.cmd")
-    _delete_script(doomed, script)
-    spawn(["cmd", "/c", script], creationflags=0x08000000 | 0x00000200, close_fds=True)
-    return 0
+__UNINSTALL__
 
 
 # ------------------------------------------------------------------- node mode
@@ -516,5 +443,6 @@ if __name__ == "__main__":
 def render_launcher(config):
     """Return launcher source with ``config`` (a JSON-able dict) embedded."""
     payload = base64.b64encode(json.dumps(config).encode('utf-8')).decode('ascii')
-    from .winshell import SNIPPET
-    return LAUNCHER_SOURCE.replace('__CONFIG_B64__', payload).replace('__WINSHELL__', SNIPPET)
+    from .winshell import SNIPPET, UNINSTALL_SNIPPET
+    return (LAUNCHER_SOURCE.replace('__CONFIG_B64__', payload)
+            .replace('__UNINSTALL__', SNIPPET + UNINSTALL_SNIPPET))

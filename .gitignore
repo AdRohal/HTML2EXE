@@ -65,3 +65,6 @@ npm-debug.log
 .cache/
 *.cache
 
+
+# release builds (upload to GitHub Releases, do not commit)
+release/

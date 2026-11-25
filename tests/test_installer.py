@@ -339,3 +339,16 @@ class BuilderSideTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ScopeArgsTests(unittest.TestCase):
+    def test_allusers_switch(self):
+        import importlib.util
+        from h2e import installer
+        ns = {'__file__': 'setup.py'}
+        src = installer.render_installer({'name': 'T', 'exe_name': 'T.exe', 'app_key': 'T', 'payload_size': 1, 'payload_sha256': 'x'})
+        exec(compile(src.split("\ndef main():")[0], 'setup', 'exec'), ns)
+        self.assertEqual(ns['parse_args'](['/S', '--allusers'])['scope'], 'machine')
+        self.assertEqual(ns['parse_args'](['/S'])['scope'], 'user')
+        self.assertTrue(ns['default_dir']('machine').lower().endswith(chr(92) + 't'))
+        self.assertIn('Programs', ns['default_dir']('user'))

@@ -159,3 +159,44 @@ class JobRunTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class AnalyzeTests(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.mkdtemp(prefix='h2e-an-')
+
+    def test_gui_and_requirements(self):
+        write(self.dir, 'main.py', "import tkinter\nimport requests\nif __name__ == '__main__':\n    pass\n")
+        write(self.dir, 'requirements.txt', 'requests>=2\n# c\nPillow==10.0 # pin\n')
+        info = pb.analyze(self.dir)
+        self.assertTrue(info['gui'])
+        self.assertEqual(info['entry'], 'main.py')
+        self.assertEqual(info['requirements']['packages'], ['requests', 'Pillow'])
+
+    def test_skips_virtualenv_and_finds_nested_entry(self):
+        write(self.dir, 'venv/pyvenv.cfg', '')
+        write(self.dir, 'venv/lib/x.py', 'import evil\n')
+        write(self.dir, 'src/cli.py', "if __name__ == '__main__':\n    pass\n")
+        info = pb.analyze(self.dir)
+        self.assertEqual(info['entry'], 'src/cli.py')
+        self.assertNotIn('evil', info['thirdParty'])
+
+    def test_errors(self):
+        with self.assertRaises(FileNotFoundError):
+            pb.analyze(os.path.join(self.dir, 'nope'))
+        with self.assertRaises(ValueError):
+            pb.analyze(self.dir)
+
+    def test_env_file_never_bundled(self):
+        write(self.dir, 'main.py')
+        write(self.dir, '.env', 'KEY=1')
+        self.assertFalse(any('.env' in s for s, _ in pb.find_data_entries(self.dir)))
+
+    def test_version_info_and_spec(self):
+        text = pb.version_info_text('My App', '1.2', 'Acme', 'MyApp')
+        self.assertIn('(1, 2, 0, 0)', text)
+        self.assertIn("'Acme'", text)
+        spec = pb.build_spec('m.py', '.', 'A', [], [], False, None, True, False, True, 'v.txt', ['h.py'])
+        self.assertIn('uac_admin=True', spec)
+        self.assertIn("version='v.txt'", spec)
+        self.assertIn("runtime_hooks=['h.py']", spec)

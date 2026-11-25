@@ -30,7 +30,7 @@ class InnoScriptTests(unittest.TestCase):
         for needle in ('AppName=My App', 'AppVersion=1.2.3', 'AppPublisher=Acme', 'PrivilegesRequired=lowest',
                        'DefaultDirName={autopf}\\My App', 'OutputBaseFilename=My_App-Setup', 'OutputDir=C:\\out',
                        'Source: "C:\\build\\My_App.exe"; DestDir: "{app}"', '{autoprograms}\\My App',
-                       'Tasks: desktopicon', 'postinstall skipifsilent', 'UninstallDisplayIcon={app}\\My_App.exe',
+                       'Tasks: desktopicon', 'postinstall skipifsilent shellexec', 'UninstallDisplayIcon={app}\\My_App.exe',
                        "ExpandConstant('{localappdata}\\H2E-My_App')"):
             self.assertIn(needle, text, needle)
         self.assertNotIn('PrivilegesRequiredOverridesAllowed', text)           # never asks for administrator rights

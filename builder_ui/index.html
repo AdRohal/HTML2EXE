@@ -27,12 +27,16 @@
   <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3L12 4z"/><path d="M12 10v4"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-kofi" viewBox="0 0 24 24"><path d="M11.351 2.715c-2.7 0-4.986.025-6.83.26C2.078 3.285 0 5.154 0 8.61c0 3.506.182 6.13 1.585 8.493c1.584 2.701 4.233 4.182 7.662 4.182h.83c4.209 0 6.494-2.234 7.637-4a9.5 9.5 0 0 0 1.091-2.338C21.792 14.688 24 12.22 24 9.208v-.415c0-3.247-2.13-5.507-5.792-5.87c-1.558-.156-2.65-.208-6.857-.208m0 1.947c4.208 0 5.09.052 6.571.182c2.624.311 4.13 1.584 4.13 4v.39c0 2.156-1.792 3.844-3.87 3.844h-.935l-.156.649c-.208 1.013-.597 1.818-1.039 2.546c-.909 1.428-2.545 3.064-5.922 3.064h-.805c-2.571 0-4.831-.883-6.078-3.195c-1.09-2-1.298-4.155-1.298-7.506c0-2.181.857-3.402 3.012-3.714c1.533-.233 3.559-.26 6.39-.26m6.547 2.287c-.416 0-.65.234-.65.546v2.935c0 .311.234.545.65.545c1.324 0 2.051-.754 2.051-2s-.727-2.026-2.052-2.026m-10.39.182c-1.818 0-3.013 1.48-3.013 3.142c0 1.533.858 2.857 1.949 3.897c.727.701 1.87 1.429 2.649 1.896a1.47 1.47 0 0 0 1.507 0c.78-.467 1.922-1.195 2.623-1.896c1.117-1.039 1.974-2.364 1.974-3.897c0-1.662-1.247-3.142-3.039-3.142c-1.065 0-1.792.545-2.338 1.298c-.493-.753-1.246-1.298-2.312-1.298"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 16 16"><path d="M8 1h2v2h2v2h2v6h-2v2h-2v2H8v-2H6v-2H4v-2H2V5h2V3h2V1z" fill="currentColor" fill-opacity=".25" stroke="none"/><path d="M8 1h2v2H8zM6 3h2v2H6zM4 5h2v2H4zM2 5h2v6H2zM4 11h2v2H4zM6 13h2v2H6z" fill="currentColor" stroke="none"/><path d="M10 3h2v2h-2zM12 5h2v6h-2zM10 11h2v2h-2zM8 13h2v2H8zM8 5h2v8H8z" fill="currentColor" fill-opacity=".6" stroke="none"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
 </svg>
 
 <header class="titlebar pywebview-drag-region">
   <div class="tb-title">HTML to EXE Builder</div>
   <div class="tb-controls">
+    <span class="tb-version" id="appVersion" title="Version">V2.5</span>
     <button class="tb-btn" id="winMin" tabindex="-1" aria-label="Minimize"><svg class="i"><use href="#i-min"/></svg></button>
     <button class="tb-btn" id="winMax" tabindex="-1" aria-label="Maximize or restore"><svg class="i"><use href="#i-max"/></svg></button>
     <button class="tb-btn tb-close" id="winClose" tabindex="-1" aria-label="Close"><svg class="i"><use href="#i-close"/></svg></button>
@@ -49,24 +53,73 @@
         <span class="logo-subtitle">App Builder</span>
       </div>
     </div>
-    <button class="nav" data-view="build" aria-label="Build app" title="Build app"><svg class="i"><use href="#i-build"/></svg><span>Build app</span></button>
+    <button class="nav" data-view="dashboard" aria-label="Dashboard" title="Dashboard"><svg class="i"><use href="#i-grid"/></svg><span>Dashboard</span></button>
+    <button class="nav" data-view="build" aria-label="Website to EXE" title="Website to EXE"><svg class="i"><use href="#i-build"/></svg><span>Website to EXE</span></button>
     <button class="nav" data-view="projects" aria-label="Projects" title="Projects"><svg class="i"><use href="#i-list"/></svg><span>Projects</span><span class="count" id="projCount" hidden></span></button>
     <p class="rail-label">More</p>
     <button class="nav" data-view="python" aria-label="Python to EXE" title="Python to EXE"><svg class="i"><use href="#i-code"/></svg><span>Python to EXE</span></button>
     <button class="nav" data-view="android" aria-label="Android APK (beta)" title="Android APK (beta)"><svg class="i"><use href="#i-phone"/></svg><span>Android APK</span><span class="beta">BETA</span></button>
     <div class="rail-foot">
       <button class="nav" data-view="system" aria-label="System check" title="System check" id="healthNav"><svg class="i"><use href="#i-check-shield"/></svg><span>System check</span><span class="dot" id="healthDot" aria-hidden="true"></span></button>
+      <a class="kofi" id="kofiLink" href="https://ko-fi.com/adrohal" aria-label="Support me on Ko-fi (opens in your browser)" title="Support me on Ko-fi">
+        <svg class="i" aria-hidden="true"><use href="#i-kofi"/></svg><span>Support me on Ko-fi</span>
+      </a>
       <p class="rail-meta">Free and local. MIT licence.</p>
     </div>
   </nav>
 
   <main class="main" id="main">
 
+    <!-- ============================== DASHBOARD ============================== -->
+    <section class="view" id="view-dashboard" aria-labelledby="h-dashboard" hidden>
+      <header class="view-head">
+        <h1 id="h-dashboard" tabindex="-1">Welcome to HTML to EXE Builder</h1>
+        <p class="lede">Convert websites and Python programs into standalone Windows apps and installers.</p>
+      </header>
+
+      <div class="stats" id="dStats" aria-live="polite">
+        <div class="stat"><b id="dProjects">-</b><span>Projects</span></div>
+        <div class="stat"><b id="dBuilt">-</b><span>Built apps</span></div>
+        <div class="stat"><b id="dAvg">-</b><span>Average size</span></div>
+        <div class="stat"><b id="dPython">-</b><span>Python</span></div>
+      </div>
+
+      <div class="dash-cols">
+        <section class="panel" aria-labelledby="h-feat">
+          <h2 class="sec" id="h-feat">Key features</h2>
+          <ul class="feat">
+            <li><svg class="i"><use href="#i-check"/></svg>Portable .exe or Setup installer</li>
+            <li><svg class="i"><use href="#i-check"/></svg>No Node.js or Python needed by end users</li>
+            <li><svg class="i"><use href="#i-check"/></svg>React, Vue, Astro, Next.js, PHP, Laravel</li>
+            <li><svg class="i"><use href="#i-check"/></svg>Encrypted .env secrets</li>
+            <li><svg class="i"><use href="#i-check"/></svg>Custom icons, names and versions</li>
+            <li><svg class="i"><use href="#i-check"/></svg>Python scripts to .exe with PyInstaller</li>
+            <li><svg class="i"><use href="#i-check"/></svg>Everything stays on this PC</li>
+            <li><svg class="i"><use href="#i-check"/></svg>Every build is tested before you get it</li>
+          </ul>
+        </section>
+        <section class="panel" aria-labelledby="h-drecent">
+          <h2 class="sec" id="h-drecent">Recent builds</h2>
+          <ul class="recent-list dash-recent" id="dRecent"></ul>
+          <p class="help" id="dNoBuilds">Nothing built yet. Your finished apps will show up here.</p>
+        </section>
+      </div>
+
+      <section aria-labelledby="h-quick">
+        <h2 class="sec" id="h-quick">Quick start</h2>
+        <div class="quick">
+          <div class="qcard"><span class="qn">1</span><h3>Pick a project</h3><p>Choose the folder of your website or app, or a Python script.</p><button class="btn btn-primary" type="button" data-go="build">Website to EXE</button></div>
+          <div class="qcard"><span class="qn">2</span><h3>Check and choose</h3><p>See what was detected, name it, add an icon, pick portable or installer.</p><button class="btn" type="button" data-go="python">Python to EXE</button></div>
+          <div class="qcard"><span class="qn">3</span><h3>Get your .exe</h3><p>Find it in your Downloads folder. Rebuild any time from Projects.</p><button class="btn" type="button" data-go="projects">Open Projects</button></div>
+        </div>
+      </section>
+    </section>
+
     <!-- ============================== BUILD ============================== -->
     <section class="view" id="view-build" aria-labelledby="h-build" hidden>
       <header class="view-head">
-        <h1 id="h-build" tabindex="-1">Build a Windows app</h1>
-        <p class="lede">Pick your project folder. The builder works out the framework, builds it and packs it as an .exe or an installer.</p>
+        <h1 id="h-build" tabindex="-1">Website to EXE</h1>
+        <p class="lede">Turn a website or web app (HTML, React, Vue, Astro, Next.js, PHP, Laravel) into a Windows .exe or installer. Pick the project folder and the builder does the rest.</p>
       </header>
 
       <div class="stage" data-stage="choose">
@@ -129,6 +182,7 @@
             <label for="rIcon">Icon <span class="opt">optional</span></label>
             <div class="icon-pick">
               <img id="rIconPrev" alt="" hidden>
+              <svg class="i cube" id="rCube" aria-hidden="true"><use href="#i-cube"/></svg>
               <label class="btn" for="rIcon">Choose PNG or ICO</label>
               <input type="file" id="rIcon" accept=".png,.ico" class="sr">
               <span class="help" id="rIconName">Default icon</span>
@@ -153,7 +207,7 @@
               <div class="field"><label for="rW">Width</label><input id="rW" type="number" min="320" max="7680" value="1100"></div>
               <div class="field"><label for="rH">Height</label><input id="rH" type="number" min="240" max="4320" value="760"></div>
               <div class="field adv-wide" id="rNextWrap" hidden>
-                <label for="rNextMode">Next.js build</label>
+                <label for="rNextMode">Next.js build <em class="dev-tag" title="Mostly useful for developers. The default is fine for most people.">For developers</em></label>
                 <select id="rNextMode">
                   <option value="auto">Automatic (recommended)</option>
                   <option value="static">Static export, no server</option>
@@ -161,7 +215,7 @@
                 </select>
                 <p class="help">Automatic uses a server only when the app has API routes, route handlers or middleware.</p>
               </div>
-              <label class="check"><input type="checkbox" id="rResize" checked><span>User can resize the window</span></label>
+              <label class="check"><input type="checkbox" id="rResize" checked><span>User can resize the window</span><em class="prod-tag" title="Checked by default: the right choice for an app you give to other people.">Recommended for production</em></label>
               <label class="check"><input type="checkbox" id="rFull"><span>Start full screen</span></label>
             </div>
           </details>
@@ -192,15 +246,42 @@
         <p class="lede">Turn a Python script or project folder into a single Windows program. Data files and common packages are found automatically.</p>
       </header>
 
-      <div class="stage" data-stage="form">
-        <form class="settings" id="pyForm" novalidate>
-          <div class="field">
-            <label for="pyPath">Script or project folder</label>
-            <div class="path-form">
-              <input id="pyPath" type="text" spellcheck="false" placeholder="C:\path\to\project (main.py, app.py or run.py is used first)">
-              <button class="btn" type="button" id="pyBrowse"><svg class="i"><use href="#i-folder"/></svg>Browse</button>
-            </div>
+      <div class="stage" data-stage="choose">
+        <div class="slot">
+          <button class="btn btn-primary" id="pyBrowse" type="button"><svg class="i"><use href="#i-folder"/></svg>Browse for folder</button>
+          <div class="slot-or" aria-hidden="true">or</div>
+          <form class="path-form" id="pyPathForm" autocomplete="off">
+            <label class="sr" for="pyPath">Folder or script path</label>
+            <input id="pyPath" type="text" spellcheck="false" placeholder="Paste a folder or .py path, press Enter">
+            <button class="btn" type="submit">Use path</button>
+          </form>
+        </div>
+        <p class="msg" id="pyMsg" role="status"></p>
+
+        <section class="recent" aria-labelledby="h-pyrecent">
+          <h2 class="sec" id="h-pyrecent">Recent Python projects</h2>
+          <ul class="recent-list" id="pyRecent"></ul>
+          <div class="first-run" id="pyFirstRun" hidden>
+            <p>No Python builds yet. This is all it takes:</p>
+            <ol>
+              <li><span><b>Pick</b> the folder with your main.py (or the script itself).</span></li>
+              <li><span><b>Check</b> the entry point, packages and the app name.</span></li>
+              <li><span><b>Build</b> a portable .exe or an installer. It lands in your Downloads folder.</span></li>
+            </ol>
           </div>
+        </section>
+      </div>
+
+      <div class="stage" data-stage="ready" hidden>
+        <div class="folder-row">
+          <svg class="i"><use href="#i-folder"/></svg>
+          <span class="path" id="pyShown"></span>
+          <button class="link" id="pyChange" type="button">Change folder</button>
+        </div>
+        <div class="detect" id="pyDetect" aria-live="polite"></div>
+        <ul class="notes" id="pyNotes"></ul>
+
+        <form class="settings" id="pyForm" novalidate>
           <div class="field">
             <label for="pyName">EXE name</label>
             <input id="pyName" type="text" maxlength="60" value="MyApp" spellcheck="false">
@@ -209,20 +290,33 @@
             <label for="pyIcon">Icon <span class="opt">optional</span></label>
             <div class="icon-pick">
               <img id="pyIconPrev" alt="" hidden>
+              <svg class="i cube" id="pyCube" aria-hidden="true"><use href="#i-cube"/></svg>
               <label class="btn" for="pyIcon">Choose PNG or ICO</label>
               <input type="file" id="pyIcon" accept=".png,.ico" class="sr">
               <span class="help" id="pyIconName">Default icon</span>
+              <button class="link" type="button" id="pyIconClear" hidden>Remove</button>
             </div>
+          </div>
+          <fieldset class="output-choice">
+            <legend>What should it create?</legend>
+            <label class="choice"><input type="radio" name="pyOut" value="portable" checked><span><b>Portable app</b><small>Double-click to run it; nothing is installed.</small></span></label>
+            <label class="choice"><input type="radio" name="pyOut" value="installer"><span><b>Installer</b><small>A Setup program with Start menu and desktop shortcuts. Removable from Windows settings, no administrator rights.</small></span></label>
+          </fieldset>
+          <div class="two" id="pyInstallerFields" hidden>
+            <div class="field"><label for="pyVersion">Version</label><input id="pyVersion" type="text" value="1.0.0" maxlength="20" spellcheck="false"></div>
+            <div class="field"><label for="pyPublisher">Publisher <span class="opt">optional</span></label><input id="pyPublisher" type="text" maxlength="80"></div>
           </div>
           <fieldset class="switches">
             <legend>Options</legend>
-            <label class="check"><input type="checkbox" id="pyHide" checked><span><b>Hide the console window</b><small>Turn off for command-line programs that print output.</small></span></label>
-            <label class="check"><input type="checkbox" id="pySingle" checked><span><b>One single .exe file</b><small>Off makes a folder; it starts faster but has many files.</small></span></label>
-            <label class="check"><input type="checkbox" id="pyOpt"><span><b>Optimise bytecode</b><small>Slightly smaller and faster; removes asserts and docstrings.</small></span></label>
+            <label class="check"><input type="checkbox" id="pyHide" checked><span><b>Hide the console window</b><small>Turn off for command-line programs that print output.</small></span><em class="prod-tag" title="Checked by default: the right choice for an app you give to other people.">Recommended for production</em><em class="dev-tag" title="Mostly useful for developers. The default is fine for most people.">For developers</em></label>
+            <label class="check"><input type="checkbox" id="pySingle" checked><span><b>One single .exe file</b><small>Off makes a folder; it starts faster but has many files.</small></span><em class="prod-tag" title="Checked by default: the right choice for an app you give to other people.">Recommended for production</em></label>
+            <label class="check"><input type="checkbox" id="pyOpt"><span><b>Optimise bytecode</b><small>Slightly smaller and faster; removes asserts and docstrings.</small></span><em class="dev-tag" title="Mostly useful for developers. The default is fine for most people.">For developers</em></label>
+            <label class="check"><input type="checkbox" id="pyIsolated" checked><span><b>Clean environment from requirements.txt</b><small>Builds with only the packages the project lists, so the result does not depend on this PC.</small></span><em class="prod-tag" title="Checked by default: the right choice for an app you give to other people.">Recommended for production</em><em class="dev-tag" title="Mostly useful for developers. The default is fine for most people.">For developers</em></label>
+            <label class="check"><input type="checkbox" id="pyAdmin"><span><b>Ask for administrator rights</b><small>The program shows the Windows permission prompt when it starts.</small></span></label>
           </fieldset>
           <div class="actions">
             <p class="help">Saved to your Downloads folder.</p>
-            <button class="btn btn-primary btn-lg" type="submit">Convert to EXE<svg class="i"><use href="#i-arrow"/></svg></button>
+            <button class="btn btn-primary btn-lg" type="submit">Build program<svg class="i"><use href="#i-arrow"/></svg></button>
           </div>
         </form>
       </div>
@@ -239,7 +333,7 @@
       <div class="stage" data-stage="form">
         <div class="prereq" id="aPrereq" aria-live="polite"><span class="help">Checking Java, Android SDK and Node.js...</span></div>
         <form class="settings" id="aForm" novalidate>
-          <div class="field">
+          <div class="field wide">
             <label for="aPath">Web project folder</label>
             <div class="path-form">
               <input id="aPath" type="text" spellcheck="false" placeholder="Paste a folder path, or pick one">

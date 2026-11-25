@@ -118,6 +118,16 @@ class JobApiTests(unittest.TestCase):
             time.sleep(0.05)
         self.assertEqual(job.status, 'cancelled')
 
+    def test_ko_fi_button_sits_under_system_check_and_opens_through_the_builder(self):
+        with urllib.request.urlopen(f'http://127.0.0.1:{self.port}/', timeout=10) as resp:
+            html = resp.read().decode('utf-8')
+        self.assertIn('href="https://ko-fi.com/adrohal"', html)
+        self.assertLess(html.index('data-view="system"'), html.index('id="kofiLink"'))
+        self.assertLess(html.index('id="kofiLink"'), html.index('Free and local'))
+        with urllib.request.urlopen(f'http://127.0.0.1:{self.port}/app.js', timeout=10) as resp:
+            js = resp.read().decode('utf-8')
+        self.assertIn("api('open-url', { url: e.currentTarget.href })", js)       # same route as the "Install" links
+
     def test_ui_assets_are_served(self):
         for path, needle in (('/app.js', b'runJob'), ('/style.css', b'--primary-dark')):
             req = urllib.request.Request(f'http://127.0.0.1:{self.port}{path}')
