@@ -1,880 +1,394 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML to EXE Builder - Professional Application Converter</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML to EXE Builder</title>
+<link rel="icon" href="data:,">
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
-        <div class="loading-container">
-            <div class="spinner"></div>
-            <h2 id="loadingTitle">Building your EXE...</h2>
-            <p id="loadingMessage">This may take a few minutes. Please wait.</p>
+
+<!-- Icon sprite: one stroke weight (1.75), 24px grid -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-build" viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/><path d="M13.5 6l-3 12"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M11 18h2"/></symbol>
+  <symbol id="i-check-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-min" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.5-5.8"/><path d="M20 4v5h-5"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3L12 4z"/><path d="M12 10v4"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-kofi" viewBox="0 0 24 24"><path d="M11.351 2.715c-2.7 0-4.986.025-6.83.26C2.078 3.285 0 5.154 0 8.61c0 3.506.182 6.13 1.585 8.493c1.584 2.701 4.233 4.182 7.662 4.182h.83c4.209 0 6.494-2.234 7.637-4a9.5 9.5 0 0 0 1.091-2.338C21.792 14.688 24 12.22 24 9.208v-.415c0-3.247-2.13-5.507-5.792-5.87c-1.558-.156-2.65-.208-6.857-.208m0 1.947c4.208 0 5.09.052 6.571.182c2.624.311 4.13 1.584 4.13 4v.39c0 2.156-1.792 3.844-3.87 3.844h-.935l-.156.649c-.208 1.013-.597 1.818-1.039 2.546c-.909 1.428-2.545 3.064-5.922 3.064h-.805c-2.571 0-4.831-.883-6.078-3.195c-1.09-2-1.298-4.155-1.298-7.506c0-2.181.857-3.402 3.012-3.714c1.533-.233 3.559-.26 6.39-.26m6.547 2.287c-.416 0-.65.234-.65.546v2.935c0 .311.234.545.65.545c1.324 0 2.051-.754 2.051-2s-.727-2.026-2.052-2.026m-10.39.182c-1.818 0-3.013 1.48-3.013 3.142c0 1.533.858 2.857 1.949 3.897c.727.701 1.87 1.429 2.649 1.896a1.47 1.47 0 0 0 1.507 0c.78-.467 1.922-1.195 2.623-1.896c1.117-1.039 1.974-2.364 1.974-3.897c0-1.662-1.247-3.142-3.039-3.142c-1.065 0-1.792.545-2.338 1.298c-.493-.753-1.246-1.298-2.312-1.298"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 16 16"><path d="M8 1h2v2h2v2h2v6h-2v2h-2v2H8v-2H6v-2H4v-2H2V5h2V3h2V1z" fill="currentColor" fill-opacity=".25" stroke="none"/><path d="M8 1h2v2H8zM6 3h2v2H6zM4 5h2v2H4zM2 5h2v6H2zM4 11h2v2H4zM6 13h2v2H6z" fill="currentColor" stroke="none"/><path d="M10 3h2v2h-2zM12 5h2v6h-2zM10 11h2v2h-2zM8 13h2v2H8zM8 5h2v8H8z" fill="currentColor" fill-opacity=".6" stroke="none"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<header class="titlebar pywebview-drag-region">
+  <div class="tb-title">HTML to EXE Builder</div>
+  <div class="tb-controls">
+    <span class="tb-version" id="appVersion" title="Version">V2.5</span>
+    <button class="tb-btn" id="winMin" tabindex="-1" aria-label="Minimize"><svg class="i"><use href="#i-min"/></svg></button>
+    <button class="tb-btn" id="winMax" tabindex="-1" aria-label="Maximize or restore"><svg class="i"><use href="#i-max"/></svg></button>
+    <button class="tb-btn tb-close" id="winClose" tabindex="-1" aria-label="Close"><svg class="i"><use href="#i-close"/></svg></button>
+  </div>
+</header>
+
+<div class="shell">
+
+  <nav class="rail" aria-label="Main">
+    <div class="logo-section">
+      <img src="./assets/logo.png" alt="HTML2EXE logo" class="app-logo" onerror="this.style.display='none'">
+      <div>
+        <h2>HTML2EXE</h2>
+        <span class="logo-subtitle">App Builder</span>
+      </div>
+    </div>
+    <button class="nav" data-view="dashboard" aria-label="Dashboard" title="Dashboard"><svg class="i"><use href="#i-grid"/></svg><span>Dashboard</span></button>
+    <button class="nav" data-view="build" aria-label="Website to EXE" title="Website to EXE"><svg class="i"><use href="#i-build"/></svg><span>Website to EXE</span></button>
+    <button class="nav" data-view="projects" aria-label="Projects" title="Projects"><svg class="i"><use href="#i-list"/></svg><span>Projects</span><span class="count" id="projCount" hidden></span></button>
+    <p class="rail-label">More</p>
+    <button class="nav" data-view="python" aria-label="Python to EXE" title="Python to EXE"><svg class="i"><use href="#i-code"/></svg><span>Python to EXE</span></button>
+    <button class="nav" data-view="android" aria-label="Android APK (beta)" title="Android APK (beta)"><svg class="i"><use href="#i-phone"/></svg><span>Android APK</span><span class="beta">BETA</span></button>
+    <div class="rail-foot">
+      <button class="nav" data-view="system" aria-label="System check" title="System check" id="healthNav"><svg class="i"><use href="#i-check-shield"/></svg><span>System check</span><span class="dot" id="healthDot" aria-hidden="true"></span></button>
+      <a class="kofi" id="kofiLink" href="https://ko-fi.com/adrohal" aria-label="Support me on Ko-fi (opens in your browser)" title="Support me on Ko-fi">
+        <svg class="i" aria-hidden="true"><use href="#i-kofi"/></svg><span>Support me on Ko-fi</span>
+      </a>
+      <p class="rail-meta">Free and local. MIT licence.</p>
+    </div>
+  </nav>
+
+  <main class="main" id="main">
+
+    <!-- ============================== DASHBOARD ============================== -->
+    <section class="view" id="view-dashboard" aria-labelledby="h-dashboard" hidden>
+      <header class="view-head">
+        <h1 id="h-dashboard" tabindex="-1">Welcome to HTML to EXE Builder</h1>
+        <p class="lede">Convert websites and Python programs into standalone Windows apps and installers.</p>
+      </header>
+
+      <div class="stats" id="dStats" aria-live="polite">
+        <div class="stat"><b id="dProjects">-</b><span>Projects</span></div>
+        <div class="stat"><b id="dBuilt">-</b><span>Built apps</span></div>
+        <div class="stat"><b id="dAvg">-</b><span>Average size</span></div>
+        <div class="stat"><b id="dPython">-</b><span>Python</span></div>
+      </div>
+
+      <div class="dash-cols">
+        <section class="panel" aria-labelledby="h-feat">
+          <h2 class="sec" id="h-feat">Key features</h2>
+          <ul class="feat">
+            <li><svg class="i"><use href="#i-check"/></svg>Portable .exe or Setup installer</li>
+            <li><svg class="i"><use href="#i-check"/></svg>No Node.js or Python needed by end users</li>
+            <li><svg class="i"><use href="#i-check"/></svg>React, Vue, Astro, Next.js, PHP, Laravel</li>
+            <li><svg class="i"><use href="#i-check"/></svg>Encrypted .env secrets</li>
+            <li><svg class="i"><use href="#i-check"/></svg>Custom icons, names and versions</li>
+            <li><svg class="i"><use href="#i-check"/></svg>Python scripts to .exe with PyInstaller</li>
+            <li><svg class="i"><use href="#i-check"/></svg>Everything stays on this PC</li>
+            <li><svg class="i"><use href="#i-check"/></svg>Every build is tested before you get it</li>
+          </ul>
+        </section>
+        <section class="panel" aria-labelledby="h-drecent">
+          <h2 class="sec" id="h-drecent">Recent builds</h2>
+          <ul class="recent-list dash-recent" id="dRecent"></ul>
+          <p class="help" id="dNoBuilds">Nothing built yet. Your finished apps will show up here.</p>
+        </section>
+      </div>
+
+      <section aria-labelledby="h-quick">
+        <h2 class="sec" id="h-quick">Quick start</h2>
+        <div class="quick">
+          <div class="qcard"><span class="qn">1</span><h3>Pick a project</h3><p>Choose the folder of your website or app, or a Python script.</p><button class="btn btn-primary" type="button" data-go="build">Website to EXE</button></div>
+          <div class="qcard"><span class="qn">2</span><h3>Check and choose</h3><p>See what was detected, name it, add an icon, pick portable or installer.</p><button class="btn" type="button" data-go="python">Python to EXE</button></div>
+          <div class="qcard"><span class="qn">3</span><h3>Get your .exe</h3><p>Find it in your Downloads folder. Rebuild any time from Projects.</p><button class="btn" type="button" data-go="projects">Open Projects</button></div>
         </div>
-    </div>
+      </section>
+    </section>
 
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <div class="logo-section">
-                <img src="./assets/logo.png" alt="App Logo" class="app-logo" onerror="this.style.display='none'">
-                <div>
-                    <h1>HTML2EXE</h1>
-                    <span class="logo-subtitle">App Builder</span>
-                </div>
-            </div>
-            
-            <nav class="nav-menu">
-                <!-- Main Section -->
-                <div class="nav-section">
-                    <div class="nav-section-title">MAIN</div>
-                    <button class="nav-item active" data-page="dashboard">
-                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-                        <span>Dashboard</span>
-                    </button>
-                    <button class="nav-item" data-page="build">
-                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49M7.76 7.76a6 6 0 0 0 0 8.49"/></svg></span>
-                        <span>Build System</span>
-                    </button>
-                    <button class="nav-item" data-page="colors">
-                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></span>
-                        <span>Colors & Theme</span>
-                    </button>
-                </div>
-                
-                <!-- Projects Section -->
-                <div class="nav-section">
-                    <div class="nav-section-title">PROJECTS</div>
-                    <button class="nav-item" data-page="projects">
-                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg></span>
-                        <span>My Projects</span>
-                    </button>
-                    <button class="nav-item" data-page="existing">
-                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>
-                        <span>Existing Project</span>
-                    </button>
-                </div>
-                
-                <!-- BETA Section -->
-                <div class="nav-section">
-                    <div class="nav-section-title">BETA</div>
-                    <button class="nav-item" data-page="python-convert">
-                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
-                        <span>Python to EXE</span>
-                    </button>
-                    <button class="nav-item" data-page="android">
-                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span>
-                        <span>Web to Android</span>
-                    </button>
-                </div>
+    <!-- ============================== BUILD ============================== -->
+    <section class="view" id="view-build" aria-labelledby="h-build" hidden>
+      <header class="view-head">
+        <h1 id="h-build" tabindex="-1">Website to EXE</h1>
+        <p class="lede">Turn a website or web app (HTML, React, Vue, Astro, Next.js, PHP, Laravel) into a Windows .exe or installer. Pick the project folder and the builder does the rest.</p>
+      </header>
 
-                <!-- Settings Section -->
-                <div class="nav-section">
-                    <div class="nav-section-title">SETTINGS</div>
-                    <button class="nav-item" data-page="settings">
-                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
-                        <span>Settings</span>
-                    </button>
-                    <button class="nav-item" onclick="showHelp()">
-                        <span class="icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
-                        <span>Help & Support</span>
-                    </button>
-                </div>
-            </nav>
-            
-            <div class="sidebar-footer">
-                <div class="sidebar-info-card">
-                    <span class="sidebar-info-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-                    <p>All projects stored locally. No cloud sync.</p>
-                </div>
-                <button class="create-project-btn" onclick="goToPage('create')">
-                    <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
-                    <span>Create Project</span>
-                </button>
-            </div>
-        </aside>
-        
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <!-- Header -->
-            <header class="app-header">
-                <div class="header-left">
-                    <button class="menu-toggle" onclick="toggleSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-                    <h2 id="pageTitle">Dashboard</h2>
-                </div>
-                <div class="header-right">
-                    <button class="version-btn">V2.0</button>
-                    
-                    <!-- Custom Window Controls (Frameless) -->
-                    <div class="window-controls">
-                        <button class="window-control-btn minimize-btn" onclick="minimizeWindow()" title="Minimize">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        </button>
-                        <button class="window-control-btn maximize-btn" onclick="maximizeWindow()" title="Maximize">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-                        </button>
-                        <button class="window-control-btn close-btn" onclick="closeWindow()" title="Close">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        </button>
-                    </div>
-                </div>
-            </header>
-            
-            <!-- Pages Container -->
-            <div class="pages-container">
-                
-                <!-- Dashboard Page -->
-                <div class="page active" id="dashboard-page">
-                    <div class="page-content">
-                        <h2>Welcome to HTML to EXE Builder</h2>
-                        <p class="subtitle">Convert your web projects to standalone Windows applications</p>
-                        
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-number" id="projectCount">0</div>
-                                <div class="stat-label">Projects</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-number" id="builtCount">0</div>
-                                <div class="stat-label">Built Apps</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-number">~180MB</div>
-                                <div class="stat-label">Avg Size</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-number" id="pythonVersion">3.8+</div>
-                                <div class="stat-label">Python</div>
-                            </div>
-                        </div>
-                        
-                        <div class="features">
-                            <h3>Key Features</h3>
-                            <div class="feature-list">
-                                <div class="feature-item">
-                                    <span class="feature-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                    <span>Single standalone .exe file</span>
-                                </div>
-                                <div class="feature-item">
-                                    <span class="feature-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                    <span>No dependencies for end users</span>
-                                </div>
-                                <div class="feature-item">
-                                    <span class="feature-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                    <span>Full HTML5, CSS3, JavaScript support</span>
-                                </div>
-                                <div class="feature-item">
-                                    <span class="feature-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                    <span>Custom icons and app names</span>
-                                </div>
-                                <div class="feature-item">
-                                    <span class="feature-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                    <span>Built-in local HTTP server</span>
-                                </div>
-                                <div class="feature-item">
-                                    <span class="feature-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                    <span>Professional desktop GUI</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="quick-start-guide">
-                            <h3>Quick Start</h3>
-                            <div class="quick-start-steps">
-                                <div class="qs-step">
-                                    <div class="qs-step-num">1</div>
-                                    <h4>Import Project</h4>
-                                    <p>Go to <strong>Existing Project</strong> and browse for your HTML/CSS/JS folder.</p>
-                                    <button class="btn-primary" onclick="goToPage('existing')">Import Now</button>
-                                </div>
-                                <div class="qs-step">
-                                    <div class="qs-step-num">2</div>
-                                    <h4>Configure Build</h4>
-                                    <p>Head to <strong>Build System</strong>, select your project, and optionally add a custom icon.</p>
-                                    <button class="btn-secondary" onclick="goToPage('build')">Open Builder</button>
-                                </div>
-                                <div class="qs-step">
-                                    <div class="qs-step-num">3</div>
-                                    <h4>Export EXE</h4>
-                                    <p>Click <strong>Start Building</strong> and find your <code>.exe</code> in the Downloads folder.</p>
-                                    <button class="btn-secondary" onclick="goToPage('build')">Build Now</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Projects Page -->
-                <div class="page" id="projects-page">
-                    <div class="page-content">
-                        <div class="page-header">
-                            <h2>Your Projects</h2>
-                            <button class="btn-primary" onclick="goToPage('existing')">+ New Project</button>
-                        </div>
-                        
-                        <div class="search-bar">
-                            <input type="text" id="projectSearch" placeholder="Search projects by name or type..." oninput="searchProjects(this.value)">
-                        </div>
-
-                        <div class="filter-bar">
-                            <button class="filter-btn active" onclick="filterProjects('all')">All</button>
-                            <button class="filter-btn" onclick="filterProjects('recent')">Recent</button>
-                            <button class="filter-btn" onclick="filterProjects('built')">Built</button>
-                        </div>
-                        
-                        <div id="projectsList" class="projects-grid">
-                            <div class="empty-state">
-                                <div class="empty-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg></div>
-                                <h3>No projects yet</h3>
-                                <p>Create your first project to get started</p>
-                                <button class="btn-primary" onclick="goToPage('create')">Create Project</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Create Project Page -->
-                <div class="page" id="create-page">
-                    <div class="page-content">
-                        <h2>Create New Project</h2>
-                        
-                        <!-- Import from Folder Section -->
-                        <div class="import-section">
-                            <h3>▭ Import from Folder</h3>
-                            <p>Or start with your own web project</p>
-                            <div class="import-controls">
-                                <input type="text" id="folderPath" placeholder="Select a folder containing your project..." readonly>
-                                <button class="btn-primary" onclick="openFolderBrowser()">Browse Folder</button>
-                            </div>
-                            <div id="folderScanResult" class="folder-scan-result" style="display: none;">
-                                <div class="scan-success">
-                                    <span class="scan-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                        <div>
-                                            <strong id="foundFileName">index.html</strong>
-                                            <small id="foundFileCount">Found 5 files</small>
-                                    </div>
-                                </div>
-                                
-                                <!-- Project Analysis Section -->
-                                <div class="analysis-section">
-                                    <h4>Project Analysis</h4>
-                                    
-                                    <div class="analysis-item">
-                                        <strong>Project Type:</strong>
-                                        <span id="projectTypeAnalysis">Analyzing...</span>
-                                    </div>
-                                    
-                                    <div class="analysis-item" id="frameworkSection" style="display: none;">
-                                        <strong>Frameworks:</strong>
-                                        <div id="frameworksList" class="tag-list"></div>
-                                    </div>
-                                    
-                                    <div class="analysis-item" id="technologiesSection" style="display: none;">
-                                        <strong>Technologies:</strong>
-                                        <div id="technologiesList" class="tag-list"></div>
-                                    </div>
-                                    
-                                    <div class="analysis-item" id="versionsSection" style="display: none;">
-                                        <strong>Versions:</strong>
-                                        <div id="versionsList" class="versions-list"></div>
-                                    </div>
-                                    
-                                    <div class="analysis-item" id="dependenciesSection" style="display: none;">
-                                        <strong>Dependencies Found:</strong>
-                                        <small id="dependenciesCount"></small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border);">
-                        
-                        <div class="create-form">
-                            <div class="form-group">
-                                <label for="projectName">Project Name *</label>
-                                <input type="text" id="projectName" placeholder="My Awesome App" required>
-                                <small>Use alphanumeric characters, hyphens, and underscores</small>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="projectAuthor">Author</label>
-                                    <input type="text" id="projectAuthor" placeholder="Your Name">
-                                </div>
-                                <div class="form-group">
-                                    <label for="projectVersion">Version</label>
-                                    <input type="text" id="projectVersion" value="1.0.0">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="projectDescription">Description</label>
-                                <textarea id="projectDescription" placeholder="Describe your application..." rows="3"></textarea>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Template</label>
-                                <div class="template-grid">
-                                    <div class="template-card active" onclick="selectTemplate('blank')">
-                                        <div class="template-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>
-                                        <div class="template-name">Blank</div>
-                                        <div class="template-desc">Start from scratch</div>
-                                    </div>
-                                    <div class="template-card" onclick="selectTemplate('modern')">
-                                        <div class="template-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 19 21 12 17 5 21"/></svg></div>
-                                        <div class="template-name">Modern UI</div>
-                                        <div class="template-desc">Beautiful design</div>
-                                    </div>
-                                    <div class="template-card" onclick="selectTemplate('dashboard')">
-                                        <div class="template-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
-                                        <div class="template-name">Dashboard</div>
-                                        <div class="template-desc">Data focused</div>
-                                    </div>
-                                    <div class="template-card" onclick="selectTemplate('calculator')">
-                                        <div class="template-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg></div>
-                                        <div class="template-name">Calculator</div>
-                                        <div class="template-desc">Functional app</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button class="btn-primary" onclick="createProject()">Create Project</button>
-                                <button class="btn-secondary" onclick="goToPage('dashboard')">Cancel</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Existing Project Page -->
-                <div class="page" id="existing-page">
-                    <div class="page-content">
-                        <div class="page-header">
-                            <div>
-                                <h2>Existing Project</h2>
-                                <p class="subtitle">Import a folder and register it as a project</p>
-                            </div>
-                            <button class="btn-secondary" onclick="goToPage('projects')">View My Projects</button>
-                        </div>
-
-                        <div class="existing-layout">
-                            <div class="existing-card">
-                                <h3>Import Project Folder</h3>
-                                <p>Select the root folder of an existing web project (HTML/CSS/JS).</p>
-                                <div class="import-controls">
-                                    <input type="text" id="existingFolderPath" placeholder="Select a folder containing your project..." readonly>
-                                    <button class="btn-primary" onclick="openExistingFolderBrowser()">Browse Folder</button>
-                                </div>
-                                <div id="existingScanResult" class="folder-scan-result" style="display: none;">
-                                    <div class="scan-success">
-                                        <span class="scan-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                        <div>
-                                            <strong id="existingFoundFileName">index.html</strong>
-                                            <small id="existingFoundFileCount">Found 0 files</small>
-                                        </div>
-                                    </div>
-
-                                    <div class="analysis-section">
-                                        <h4>Project Analysis</h4>
-
-                                        <div class="analysis-item">
-                                            <strong>Project Type:</strong>
-                                            <span id="existingProjectTypeAnalysis">Analyzing...</span>
-                                        </div>
-
-                                        <div class="analysis-item" id="existingFrameworkSection" style="display: none;">
-                                            <strong>Frameworks:</strong>
-                                            <div id="existingFrameworksList" class="tag-list"></div>
-                                        </div>
-
-                                        <div class="analysis-item" id="existingTechnologiesSection" style="display: none;">
-                                            <strong>Technologies:</strong>
-                                            <div id="existingTechnologiesList" class="tag-list"></div>
-                                        </div>
-
-                                        <div class="analysis-item" id="existingVersionsSection" style="display: none;">
-                                            <strong>Versions:</strong>
-                                            <div id="existingVersionsList" class="versions-list"></div>
-                                        </div>
-
-                                        <div class="analysis-item" id="existingDependenciesSection" style="display: none;">
-                                            <strong>Dependencies Found:</strong>
-                                            <small id="existingDependenciesCount"></small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="existing-card">
-                                <h3>Project Details</h3>
-                                <div class="existing-form">
-                                    <div class="form-group">
-                                        <label for="existingProjectName">Project Name *</label>
-                                        <input type="text" id="existingProjectName" placeholder="My Existing App" required>
-                                        <small>Use alphanumeric characters, hyphens, and underscores</small>
-                                    </div>
-
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label for="existingProjectAuthor">Author</label>
-                                            <input type="text" id="existingProjectAuthor" placeholder="Your Name">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="existingProjectVersion">Version</label>
-                                            <input type="text" id="existingProjectVersion" value="1.0.0">
-                                        </div>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="existingProjectDescription">Description</label>
-                                        <textarea id="existingProjectDescription" placeholder="Describe your application..." rows="3"></textarea>
-                                    </div>
-
-                                    <div class="form-actions">
-                                        <button class="btn-primary" onclick="createExistingProject()">Add Existing Project</button>
-                                        <button class="btn-secondary" onclick="goToPage('dashboard')">Cancel</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Build Page -->
-                <div class="page" id="build-page">
-                    <div class="page-content">
-                        <h2>Build Your App</h2>
-                        
-                        <div class="build-form">
-                            <div class="form-group">
-                                <label for="buildProject">Select Project *</label>
-                                <select id="buildProject" required>
-                                    <option value="">Choose a project...</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="buildName">Executable Name</label>
-                                    <input type="text" id="buildName" placeholder="MyApp">
-                                    <small>The .exe filename (will be auto-filled from project)</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="buildIcon">Custom Icon (Optional)</label>
-                                    <div class="icon-input-wrapper">
-                                        <input type="file" id="buildIcon" accept=".ico,.png">
-                                        <img id="buildIconPreview" class="icon-preview" style="display:none;" alt="Icon preview">
-                                    </div>
-                                    <small>PNG or ICO format (PNG will be converted)</small>
-                                </div>
-                            </div>
-                            
-                            <div class="build-options">
-                                <h3>Build Options</h3>
-                                <label class="checkbox">
-                                    <input type="checkbox" id="consoleMode" checked>
-                                    <span>Hide console window (recommended)</span>
-                                </label>
-                                <label class="checkbox">
-                                    <input type="checkbox" id="singleFile" checked>
-                                    <span>Single file (one .exe instead of folder)</span>
-                                </label>
-                                <label class="checkbox">
-                                    <input type="checkbox" id="optimizeSize">
-                                    <span>Optimize size (slower build)</span>
-                                </label>
-                                <label class="checkbox">
-                                    <input type="checkbox" id="debug">
-                                    <span>Debug mode (show console)</span>
-                                </label>
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button class="btn-primary btn-large" onclick="buildProject()">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                                    Start Building
-                                </button>
-                                <button class="btn-secondary" onclick="testProject()">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                                    Test Project
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Build Progress -->
-                        <div id="buildProgressSection" class="build-progress" style="display: none;">
-                            <h3>Build Status</h3>
-                            <div class="progress-bar">
-                                <div id="progressFill" class="progress-fill" style="width: 0%"></div>
-                            </div>
-                            <div id="buildSteps" class="build-steps"></div>
-                            <p id="buildStatus">Initializing build...</p>
-                            <div id="buildLog" class="build-log"></div>
-                            <div class="log-actions">
-                            <button id="openBuildOutputBtn" class="btn-secondary open-output-btn" style="display:none;" onclick="openOutputFolder('build')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Open Output Folder</button>
-                            <button class="btn-secondary copy-log-btn" onclick="copyLog('buildLog')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Output</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Color Panel Page -->
-                <div class="page" id="colors-page">
-                    <div class="page-content">
-                        <h2>Color Palette</h2>
-                        <p class="subtitle">Explore and manage colors for your projects</p>
-                        
-                        <div class="color-controls">
-                            <div class="color-picker-wrapper">
-                                <label for="colorPicker">Pick a color:</label>
-                                <input type="color" id="colorPicker" value="#667eea">
-                                <span class="color-hex-display" id="colorHexDisplay">#667EEA</span>
-                            </div>
-                            <input type="text" id="colorNameInput" placeholder="Color name (optional)" maxlength="30">
-                            <button class="btn-primary" onclick="addCustomColor()">Add Color</button>
-                        </div>
-                        
-                        <div class="color-grid" id="colorGrid">
-                            <!-- Colors will be populated here -->
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Settings Page -->
-                <div class="page" id="settings-page">
-                    <div class="page-content">
-                        <h2>Settings</h2>
-                        
-                        <div class="settings-section">
-                            <h3>Server Settings</h3>
-                            <div class="form-group">
-                                <label for="serverPort">Local Server Port</label>
-                                <input type="number" id="serverPort" value="8000" min="1000" max="65535">
-                                <small>Port used by the local HTTP server</small>
-                            </div>
-                        </div>
-                        
-                        <div class="settings-section">
-                            <h3>Window Settings</h3>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="windowWidth">Default Window Width</label>
-                                    <input type="number" id="windowWidth" value="1024" min="400">
-                                </div>
-                                <div class="form-group">
-                                    <label for="windowHeight">Default Window Height</label>
-                                    <input type="number" id="windowHeight" value="768" min="300">
-                                </div>
-                            </div>
-                            <label class="checkbox">
-                                <input type="checkbox" id="windowResizable" checked>
-                                <span>Allow users to resize window</span>
-                            </label>
-                        </div>
-                        
-                        <div class="settings-section">
-                            <h3>Build Settings</h3>
-                            <label class="checkbox">
-                                <input type="checkbox" id="autoMinify" checked>
-                                <span>Auto-minify CSS and JavaScript</span>
-                            </label>
-                            <label class="checkbox">
-                                <input type="checkbox" id="includeSourceMaps">
-                                <span>Include source maps (for debugging)</span>
-                            </label>
-                        </div>
-                        
-                        <div class="settings-section">
-                            <h3>Advanced</h3>
-                            <button class="btn-secondary" onclick="cleanCache()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Clean Cache</button>
-                            <button class="btn-secondary" onclick="resetSettings()">Reset to Defaults</button>
-                            <button class="btn-secondary" onclick="openProjectsFolder()">Open Projects Folder</button>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Python to EXE Converter Page -->
-                <div class="page" id="python-convert-page">
-                    <div class="page-content">
-                        <div class="page-header">
-                            <div>
-                                <h2>Python to EXE Converter <span class="beta-badge">BETA</span></h2>
-                                <p class="subtitle">Convert Python scripts and projects to standalone Windows executables</p>
-                            </div>
-                            <button class="btn-secondary" onclick="goToPage('settings')">Back to Settings</button>
-                        </div>
-
-                        <div class="python-converter-section">
-                            <h3>Select Python Project</h3>
-                            <p>Choose a Python file or project folder to convert to EXE</p>
-                            <div class="import-controls">
-                                <input type="text" id="pythonProjectPath" placeholder="Select your Python project..." readonly>
-                                <button class="btn-primary" onclick="browsePythonProject()">Browse Project</button>
-                            </div>
-
-                            <div id="pythonProjectInfo" style="display: none; margin-top: 20px;">
-                                <div class="scan-success">
-                                    <span class="scan-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-                                    <div>
-                                        <strong id="pythonFileName">main.py</strong>
-                                        <small id="pythonFileInfo">Python project detected</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="python-converter-section">
-                            <h3>Conversion Settings</h3>
-                            <div class="form-group">
-                                <label for="pythonExeName">Executable Name</label>
-                                <input type="text" id="pythonExeName" placeholder="MyApp" value="MyApp">
-                                <small>The name for your .exe file</small>
-                            </div>
-
-                            <div class="form-group">
-                                    <label for="pythonExeIcon">Application Icon (Optional)</label>
-                                    <div class="icon-input-wrapper">
-                                        <input type="file" id="pythonExeIcon" accept=".ico,.png">
-                                        <img id="pythonIconPreview" class="icon-preview" style="display:none;" alt="Icon preview">
-                                    </div>
-                                    <small>PNG or ICO format (PNG will be converted)</small>
-                                </div>
-
-                            <div class="python-options">
-                                <label class="checkbox">
-                                    <input type="checkbox" id="pythonHideConsole" checked>
-                                    <span>Hide console window</span>
-                                </label>
-                                <label class="checkbox">
-                                    <input type="checkbox" id="pythonSingleFile" checked>
-                                    <span>Create single .exe file</span>
-                                </label>
-                                <label class="checkbox">
-                                    <input type="checkbox" id="pythonOptimize">
-                                    <span>Optimize for size (slower build)</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="python-converter-section">
-                            <h3>Requirements</h3>
-                            <ul class="requirements-list">
-                                <li>Python 3.8 or higher installed on your system</li>
-                                <li>PyInstaller will be used for compilation</li>
-                                <li>Estimated build time: 2-5 minutes depending on project size</li>
-                                <li>Some libraries may require additional configuration</li>
-                            </ul>
-                        </div>
-
-                        <div class="form-actions">
-                            <button class="btn-primary btn-large" onclick="convertPythonToExe()">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                                Start Conversion
-                            </button>
-                            <button class="btn-secondary" onclick="goToPage('settings')">Cancel</button>
-                        </div>
-
-                        <!-- Conversion Progress -->
-                        <div id="pythonConvertProgress" class="build-progress" style="display: none;">
-                            <h3>Conversion Status</h3>
-                            <div class="progress-bar">
-                                <div id="pythonProgressFill" class="progress-fill" style="width: 0%"></div>
-                            </div>
-                            <div id="pythonBuildSteps" class="build-steps"></div>
-                            <p id="pythonConvertStatus">Initializing conversion...</p>
-                            <div id="pythonConvertLog" class="build-log"></div>
-                            <div class="log-actions">
-                            <button id="openPythonOutputBtn" class="btn-secondary open-output-btn" style="display:none;" onclick="openOutputFolder('python')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Open Output Folder</button>
-                            <button class="btn-secondary copy-log-btn" onclick="copyLog('pythonConvertLog')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Output</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Web to Android Page -->
-                <div class="page" id="android-page">
-                    <div class="page-content">
-                        <div class="page-header">
-                            <div>
-                                <h2>Web to Android <span class="beta-badge">BETA</span></h2>
-                                <p class="subtitle">Convert HTML, React, Vue, Next.js, Angular, Svelte and more into Android APKs</p>
-                            </div>
-                        </div>
-
-                        <!-- Prerequisites Panel -->
-                        <div class="python-converter-section">
-                            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-                                <h3>Prerequisites</h3>
-                                <button class="btn-secondary" style="padding:6px 14px; font-size:12px;" onclick="checkAndroidPrereqs()">Check Again</button>
-                            </div>
-                            <div class="prereq-list" id="prereqList">
-                                <div class="prereq-item">
-                                    <span class="prereq-label">Checking...</span>
-                                </div>
-                            </div>
-                            <p style="margin-top:12px; font-size:12px; color:var(--text-muted);">
-                                Requires <a href="https://adoptium.net" target="_blank" style="color:var(--primary);">JDK 17+</a>,
-                                <a href="https://developer.android.com/studio" target="_blank" style="color:var(--primary);">Android Studio</a> (with Android SDK, set <code style="background:var(--surface);padding:1px 5px;border-radius:3px;font-size:11px;">ANDROID_HOME</code>), and
-                                <a href="https://nodejs.org" target="_blank" style="color:var(--primary);">Node.js</a>.
-                            </p>
-                        </div>
-
-                        <!-- Source Selection -->
-                        <div class="python-converter-section">
-                            <h3>Web Project Source</h3>
-                            <div style="display:flex; gap:12px; margin-bottom:16px;">
-                                <label class="checkbox" style="flex:1; padding:10px 14px; background:var(--card-bg-2); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
-                                    <input type="radio" name="androidSource" id="androidSourceProject" value="project" checked onchange="toggleAndroidSource()">
-                                    <span>Use existing project</span>
-                                </label>
-                                <label class="checkbox" style="flex:1; padding:10px 14px; background:var(--card-bg-2); border:1px solid var(--border); border-radius:8px; cursor:pointer;">
-                                    <input type="radio" name="androidSource" id="androidSourceFolder" value="folder" onchange="toggleAndroidSource()">
-                                    <span>Browse a folder</span>
-                                </label>
-                            </div>
-
-                            <div id="androidProjectSelect">
-                                <div class="form-group">
-                                    <label>Project</label>
-                                    <select id="androidProject" class="form-select">
-                                        <option value="">— Select a project —</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div id="androidFolderSelect" style="display:none;">
-                                <div class="form-group">
-                                    <label>Folder</label>
-                                    <div class="import-controls">
-                                        <input type="text" id="androidFolderPath" placeholder="Select your web project folder..." readonly>
-                                        <button class="btn-primary" onclick="browseAndroidFolder()">Browse</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- App Settings -->
-                        <div class="python-converter-section">
-                            <h3>App Settings</h3>
-                            <div class="form-group">
-                                <label for="androidAppName">App Name</label>
-                                <input type="text" id="androidAppName" placeholder="My App" value="MyApp">
-                                <small>Display name on the device</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="androidPackageName">Package Name</label>
-                                <input type="text" id="androidPackageName" placeholder="com.example.myapp" value="com.example.myapp">
-                                <small>Unique identifier — use reverse domain style (e.g. com.yourname.appname)</small>
-                            </div>
-                        </div>
-
-                        <!-- Info -->
-                        <div class="python-converter-section">
-                            <h3>What to expect</h3>
-                            <ul class="requirements-list">
-                                <li>React, Vue, Angular, Next.js, Svelte, Nuxt and plain HTML are all supported</li>
-                                <li>Source projects (with <code style="font-size:11px;">src/</code> folder) are auto-built with <code style="font-size:11px;">npm run build</code></li>
-                                <li>First build may take <strong>5–10 minutes</strong> — Gradle downloads Android dependencies (~500 MB)</li>
-                                <li>Subsequent builds are fast (~30 seconds)</li>
-                                <li>Output: a <strong>debug APK</strong> saved to your Downloads folder</li>
-                            </ul>
-                        </div>
-
-                        <div class="form-actions">
-                            <button class="btn-primary btn-large" id="buildAndroidBtn" onclick="buildAndroid()">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                                Build APK
-                            </button>
-                        </div>
-
-                        <!-- Build Progress -->
-                        <div id="androidBuildProgress" class="build-progress" style="display:none;">
-                            <h3>Build Progress</h3>
-                            <div class="progress-bar">
-                                <div id="androidProgressFill" class="progress-fill" style="width:0%"></div>
-                            </div>
-                            <div id="androidBuildSteps" class="build-steps"></div>
-                            <p id="androidBuildStatus">Initializing...</p>
-                            <div id="androidBuildLog" class="build-log"></div>
-                            <div class="log-actions">
-                            <button id="openAndroidOutputBtn" class="btn-secondary open-output-btn" style="display:none;" onclick="openAndroidOutputFolder()">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                                Open APK Folder
-                            </button>
-                            <button class="btn-secondary copy-log-btn" onclick="copyLog('androidBuildLog')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Output</button>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
-        </main>
-    </div>
-    
-    <!-- Modal Dialogs -->
-    <div id="helpModal" class="modal" onclick="closeModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <h2>Help & Documentation</h2>
-                <button class="modal-close" onclick="closeModal()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            </div>
-            <div class="modal-body">
-                <h3>Getting Started</h3>
-                <p>1. Create a new project or select an existing one</p>
-                <p>2. Edit your HTML, CSS, and JavaScript files</p>
-                <p>3. Test your app with the "Test" button</p>
-                <p>4. Build to EXE when ready</p>
-                
-                <h3>Project Structure</h3>
-                <pre>my_project/
-├── index.html
-├── style.css
-├── script.js
-├── project.json
-└── assets/</pre>
-
-                <h3>Useful Tips</h3>
-                <ul>
-                    <li>Always test before building</li>
-                    <li>Keep project files organized</li>
-                    <li>Use relative paths for assets</li>
-                    <li>Avoid external API dependencies</li>
-                </ul>
-                
-                <h3>Resources</h3>
-                <p><a href="#">PyWebView Documentation</a></p>
-                <p><a href="#">PyInstaller Documentation</a></p>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-primary" onclick="closeModal()">Done</button>
-            </div>
+      <div class="stage" data-stage="choose">
+        <div class="slot">
+          <button class="btn btn-primary" id="bBrowse" type="button"><svg class="i"><use href="#i-folder"/></svg>Browse for folder</button>
+          <div class="slot-or" aria-hidden="true">or</div>
+          <form class="path-form" id="bPathForm" autocomplete="off">
+            <label class="sr" for="bPath">Folder path</label>
+            <input id="bPath" type="text" spellcheck="false" placeholder="Paste a folder path, press Enter">
+            <button class="btn" type="submit">Use path</button>
+          </form>
         </div>
-    </div>
-    
-    <script src="api.js"></script>
-    <script src="script.js"></script>
+        <p class="msg" id="bMsg" role="status"></p>
 
-    <!-- Toast Container -->
-    <div id="toastContainer" class="toast-container"></div>
+        <section class="recent" aria-labelledby="h-recent">
+          <h2 class="sec" id="h-recent">Recent projects</h2>
+          <ul class="recent-list" id="bRecent"></ul>
+          <div class="first-run" id="bFirstRun" hidden>
+            <p>No builds yet. This is all it takes:</p>
+            <ol>
+              <li><span><b>Pick</b> the folder with your index.html, or your React, Vue, Astro, Next.js, PHP or Laravel project.</span></li>
+              <li><span><b>Check</b> what was detected and the app name.</span></li>
+              <li><span><b>Build</b>. The .exe lands in your Downloads folder, already tested.</span></li>
+            </ol>
+          </div>
+        </section>
+      </div>
 
-    <!-- Custom Confirm Modal -->
-    <div id="confirmModal" class="confirm-modal-overlay" style="display:none;">
-        <div class="confirm-modal">
-            <p class="confirm-title" id="confirmTitle">Confirm</p>
-            <p class="confirm-message" id="confirmMessage"></p>
-            <div class="confirm-actions">
-                <button class="btn-secondary" id="confirmCancelBtn">Cancel</button>
-                <button class="btn-primary" id="confirmOkBtn">Confirm</button>
-            </div>
+      <div class="stage" data-stage="ready" hidden>
+        <div class="folder-row">
+          <svg class="i"><use href="#i-folder"/></svg>
+          <span class="path" id="rPath"></span>
+          <button class="link" id="rChange" type="button">Change folder</button>
         </div>
+
+        <div class="detect" id="rDetect" aria-live="polite"></div>
+        <ul class="notes" id="rNotes"></ul>
+
+        <p class="env-info" id="rEnvInfo" hidden></p>
+        <section class="env" id="rEnv" aria-labelledby="h-env" hidden>
+          <h2 class="sec" id="h-env">Secrets and settings</h2>
+          <p class="help" id="rEnvIntro"></p>
+          <ul class="env-list" id="rEnvList"></ul>
+          <fieldset class="env-mode">
+            <legend class="sr">How to ship these values</legend>
+            <label class="check"><input type="radio" name="envMode" value="bundle" checked><span><b>Encrypt and bundle (recommended)</b><small>Stored AES-256 encrypted inside the .exe. The app decrypts them in memory when it starts. This stops copying and casual inspection; it cannot stop someone who reverse-engineers the .exe.</small></span></label>
+            <label class="check"><input type="radio" name="envMode" value="none"><span><b>Do not bundle</b><small>Nothing secret is stored in the .exe. Each person adds their own keys in a .env file in the app's data folder.</small></span></label>
+          </fieldset>
+          <p class="env-warn" id="rEnvWarn" role="note" hidden></p>
+        </section>
+
+        <form class="settings" id="bForm" novalidate>
+          <div class="field">
+            <label for="rName">App name</label>
+            <input id="rName" type="text" maxlength="60" spellcheck="false" aria-describedby="rNameHelp">
+            <p class="help" id="rNameHelp">File name: <b id="rFile"></b></p>
+          </div>
+
+          <div class="field">
+            <label for="rIcon">Icon <span class="opt">optional</span></label>
+            <div class="icon-pick">
+              <img id="rIconPrev" alt="" hidden>
+              <svg class="i cube" id="rCube" aria-hidden="true"><use href="#i-cube"/></svg>
+              <label class="btn" for="rIcon">Choose PNG or ICO</label>
+              <input type="file" id="rIcon" accept=".png,.ico" class="sr">
+              <span class="help" id="rIconName">Default icon</span>
+              <button class="link" type="button" id="rIconClear" hidden>Remove</button>
+            </div>
+          </div>
+
+          <fieldset class="output-choice">
+            <legend>What should it create?</legend>
+            <label class="choice"><input type="radio" name="outType" value="portable" checked><span><b>Portable app</b><small>One .exe file. Double-click to run it; nothing is installed.</small></span></label>
+            <label class="choice"><input type="radio" name="outType" value="installer"><span><b>Installer</b><small>A Setup program that installs the app on a PC with Start menu and desktop shortcuts. It can be removed from Windows settings. No administrator rights needed.</small></span></label>
+          </fieldset>
+          <p class="help" id="rInstallerEngine" hidden></p>
+          <div class="two" id="rInstallerFields" hidden>
+            <div class="field"><label for="rVersion">Version</label><input id="rVersion" type="text" value="1.0.0" maxlength="20" spellcheck="false"></div>
+            <div class="field"><label for="rPublisher">Publisher <span class="opt">optional</span></label><input id="rPublisher" type="text" maxlength="80"></div>
+          </div>
+
+          <details class="adv">
+            <summary>Window and build options</summary>
+            <div class="adv-grid">
+              <div class="field"><label for="rW">Width</label><input id="rW" type="number" min="320" max="7680" value="1100"></div>
+              <div class="field"><label for="rH">Height</label><input id="rH" type="number" min="240" max="4320" value="760"></div>
+              <div class="field adv-wide" id="rNextWrap" hidden>
+                <label for="rNextMode">Next.js build <em class="dev-tag" title="Mostly useful for developers. The default is fine for most people.">For developers</em></label>
+                <select id="rNextMode">
+                  <option value="auto">Automatic (recommended)</option>
+                  <option value="static">Static export, no server</option>
+                  <option value="server">Server app, Node.js bundled</option>
+                </select>
+                <p class="help">Automatic uses a server only when the app has API routes, route handlers or middleware.</p>
+              </div>
+              <label class="check"><input type="checkbox" id="rResize" checked><span>User can resize the window</span><em class="prod-tag" title="Checked by default: the right choice for an app you give to other people.">Recommended for production</em></label>
+              <label class="check"><input type="checkbox" id="rFull"><span>Start full screen</span></label>
+            </div>
+          </details>
+
+          <div class="actions">
+            <p class="help">Saved to your Downloads folder.</p>
+            <button class="btn btn-primary btn-lg" id="bBuild" type="submit">Build EXE<svg class="i"><use href="#i-arrow"/></svg></button>
+          </div>
+        </form>
+      </div>
+
+      <div class="stage" data-stage="job" hidden></div>
+    </section>
+
+    <!-- ============================== PROJECTS ============================== -->
+    <section class="view" id="view-projects" aria-labelledby="h-projects" hidden>
+      <header class="view-head">
+        <h1 id="h-projects" tabindex="-1">Projects</h1>
+        <p class="lede">Every app you have built. Rebuild picks up changes from the original folder.</p>
+      </header>
+      <div id="pTable"></div>
+    </section>
+
+    <!-- ============================== PYTHON ============================== -->
+    <section class="view" id="view-python" aria-labelledby="h-python" hidden>
+      <header class="view-head">
+        <h1 id="h-python" tabindex="-1">Python to EXE</h1>
+        <p class="lede">Turn a Python script or project folder into a single Windows program. Data files and common packages are found automatically.</p>
+      </header>
+
+      <div class="stage" data-stage="choose">
+        <div class="slot">
+          <button class="btn btn-primary" id="pyBrowse" type="button"><svg class="i"><use href="#i-folder"/></svg>Browse for folder</button>
+          <div class="slot-or" aria-hidden="true">or</div>
+          <form class="path-form" id="pyPathForm" autocomplete="off">
+            <label class="sr" for="pyPath">Folder or script path</label>
+            <input id="pyPath" type="text" spellcheck="false" placeholder="Paste a folder or .py path, press Enter">
+            <button class="btn" type="submit">Use path</button>
+          </form>
+        </div>
+        <p class="msg" id="pyMsg" role="status"></p>
+
+        <section class="recent" aria-labelledby="h-pyrecent">
+          <h2 class="sec" id="h-pyrecent">Recent Python projects</h2>
+          <ul class="recent-list" id="pyRecent"></ul>
+          <div class="first-run" id="pyFirstRun" hidden>
+            <p>No Python builds yet. This is all it takes:</p>
+            <ol>
+              <li><span><b>Pick</b> the folder with your main.py (or the script itself).</span></li>
+              <li><span><b>Check</b> the entry point, packages and the app name.</span></li>
+              <li><span><b>Build</b> a portable .exe or an installer. It lands in your Downloads folder.</span></li>
+            </ol>
+          </div>
+        </section>
+      </div>
+
+      <div class="stage" data-stage="ready" hidden>
+        <div class="folder-row">
+          <svg class="i"><use href="#i-folder"/></svg>
+          <span class="path" id="pyShown"></span>
+          <button class="link" id="pyChange" type="button">Change folder</button>
+        </div>
+        <div class="detect" id="pyDetect" aria-live="polite"></div>
+        <ul class="notes" id="pyNotes"></ul>
+
+        <form class="settings" id="pyForm" novalidate>
+          <div class="field">
+            <label for="pyName">EXE name</label>
+            <input id="pyName" type="text" maxlength="60" value="MyApp" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="pyIcon">Icon <span class="opt">optional</span></label>
+            <div class="icon-pick">
+              <img id="pyIconPrev" alt="" hidden>
+              <svg class="i cube" id="pyCube" aria-hidden="true"><use href="#i-cube"/></svg>
+              <label class="btn" for="pyIcon">Choose PNG or ICO</label>
+              <input type="file" id="pyIcon" accept=".png,.ico" class="sr">
+              <span class="help" id="pyIconName">Default icon</span>
+              <button class="link" type="button" id="pyIconClear" hidden>Remove</button>
+            </div>
+          </div>
+          <fieldset class="output-choice">
+            <legend>What should it create?</legend>
+            <label class="choice"><input type="radio" name="pyOut" value="portable" checked><span><b>Portable app</b><small>Double-click to run it; nothing is installed.</small></span></label>
+            <label class="choice"><input type="radio" name="pyOut" value="installer"><span><b>Installer</b><small>A Setup program with Start menu and desktop shortcuts. Removable from Windows settings, no administrator rights.</small></span></label>
+          </fieldset>
+          <div class="two" id="pyInstallerFields" hidden>
+            <div class="field"><label for="pyVersion">Version</label><input id="pyVersion" type="text" value="1.0.0" maxlength="20" spellcheck="false"></div>
+            <div class="field"><label for="pyPublisher">Publisher <span class="opt">optional</span></label><input id="pyPublisher" type="text" maxlength="80"></div>
+          </div>
+          <fieldset class="switches">
+            <legend>Options</legend>
+            <label class="check"><input type="checkbox" id="pyHide" checked><span><b>Hide the console window</b><small>Turn off for command-line programs that print output.</small></span><em class="prod-tag" title="Checked by default: the right choice for an app you give to other people.">Recommended for production</em><em class="dev-tag" title="Mostly useful for developers. The default is fine for most people.">For developers</em></label>
+            <label class="check"><input type="checkbox" id="pySingle" checked><span><b>One single .exe file</b><small>Off makes a folder; it starts faster but has many files.</small></span><em class="prod-tag" title="Checked by default: the right choice for an app you give to other people.">Recommended for production</em></label>
+            <label class="check"><input type="checkbox" id="pyOpt"><span><b>Optimise bytecode</b><small>Slightly smaller and faster; removes asserts and docstrings.</small></span><em class="dev-tag" title="Mostly useful for developers. The default is fine for most people.">For developers</em></label>
+            <label class="check"><input type="checkbox" id="pyIsolated" checked><span><b>Clean environment from requirements.txt</b><small>Builds with only the packages the project lists, so the result does not depend on this PC.</small></span><em class="prod-tag" title="Checked by default: the right choice for an app you give to other people.">Recommended for production</em><em class="dev-tag" title="Mostly useful for developers. The default is fine for most people.">For developers</em></label>
+            <label class="check"><input type="checkbox" id="pyAdmin"><span><b>Ask for administrator rights</b><small>The program shows the Windows permission prompt when it starts.</small></span></label>
+          </fieldset>
+          <div class="actions">
+            <p class="help">Saved to your Downloads folder.</p>
+            <button class="btn btn-primary btn-lg" type="submit">Build program<svg class="i"><use href="#i-arrow"/></svg></button>
+          </div>
+        </form>
+      </div>
+      <div class="stage" data-stage="job" hidden></div>
+    </section>
+
+    <!-- ============================== ANDROID ============================== -->
+    <section class="view" id="view-android" aria-labelledby="h-android" hidden>
+      <header class="view-head">
+        <h1 id="h-android" tabindex="-1">Android APK <span class="chip">BETA</span></h1>
+        <p class="lede">Wrap a web project as an installable Android app. The first build downloads about 1 GB and takes 5 to 15 minutes.</p>
+      </header>
+
+      <div class="stage" data-stage="form">
+        <div class="prereq" id="aPrereq" aria-live="polite"><span class="help">Checking Java, Android SDK and Node.js...</span></div>
+        <form class="settings" id="aForm" novalidate>
+          <div class="field wide">
+            <label for="aPath">Web project folder</label>
+            <div class="path-form">
+              <input id="aPath" type="text" spellcheck="false" placeholder="Paste a folder path, or pick one">
+              <button class="btn" type="button" id="aBrowse"><svg class="i"><use href="#i-folder"/></svg>Browse</button>
+            </div>
+            <div class="chips" id="aRecent" aria-label="Recent projects"></div>
+          </div>
+          <div class="two">
+            <div class="field"><label for="aName">App name</label><input id="aName" type="text" maxlength="40" value="MyApp"></div>
+            <div class="field"><label for="aPkg">Package id</label><input id="aPkg" type="text" maxlength="80" value="com.example.myapp" spellcheck="false"><p class="help" id="aPkgHelp">Lowercase, dot separated.</p></div>
+          </div>
+          <div class="actions">
+            <p class="help" id="aGate"></p>
+            <button class="btn btn-primary btn-lg" type="submit" id="aBuild">Build APK<svg class="i"><use href="#i-arrow"/></svg></button>
+          </div>
+        </form>
+      </div>
+      <div class="stage" data-stage="job" hidden></div>
+    </section>
+
+    <!-- ============================== SYSTEM ============================== -->
+    <section class="view" id="view-system" aria-labelledby="h-system" hidden>
+      <header class="view-head view-head-row">
+        <div>
+          <h1 id="h-system" tabindex="-1">System check</h1>
+          <p class="lede">What this PC has, and what each tool unlocks.</p>
+        </div>
+        <button class="btn" id="sysRefresh" type="button"><svg class="i"><use href="#i-refresh"/></svg>Check again</button>
+      </header>
+      <div id="sysBody" aria-live="polite"></div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast-zone" id="toasts" role="status" aria-live="polite"></div>
+
+<!-- Shared job panel: build progress as a strip of label tape, then the finished label -->
+<template id="tpl-job">
+  <div class="job">
+    <div class="job-head">
+      <h2 class="job-title" tabindex="-1"></h2>
+      <div class="job-meta"><span class="elapsed" aria-label="Elapsed time">0:00</span><button class="btn btn-sm cancel" type="button">Cancel</button></div>
     </div>
+    <ol class="tape" aria-label="Progress"></ol>
+    <p class="step-now" role="status" aria-live="polite"></p>
+    <div class="result" hidden></div>
+    <details class="logbox" open>
+      <summary>Build log</summary>
+      <div class="log-tools"><button class="btn btn-sm copy" type="button"><svg class="i"><use href="#i-copy"/></svg>Copy log</button></div>
+      <pre class="log" tabindex="0" aria-label="Build log"></pre>
+    </details>
+  </div>
+</template>
+
+<script src="app.js"></script>
 </body>
 </html>

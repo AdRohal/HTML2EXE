@@ -1,383 +1,240 @@
-# HTML to EXE Builder
+<div align="center">
 
-![HTML2EXE Logo](./builder_ui//assets/html2exe-image.png)
+<img src="./builder_ui/assets/logo.png" alt="HTML2EXE logo" width="120">
 
-A professional desktop application that converts **HTML/CSS/JavaScript** web projects into Windows `.exe` desktop apps, **Python** scripts into standalone executables, and **web frameworks** into Android APKs. No coding or command-line knowledge required — everything is done through a sleek graphical interface.
+# HTML2EXE
 
-![Platform](https://img.shields.io/badge/Platform-Windows-blue)
-![Python](https://img.shields.io/badge/Python-3.8%2B-green)
-![Android](https://img.shields.io/badge/Android-APK-brightgreen)
+**Turn websites and Python programs into Windows apps and installers. No command line needed.**
 
----
+[![Version](https://img.shields.io/badge/version-2.5-7c3aed)](https://github.com/AdRohal/HTML2EXE/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0f172a)](#requirements)
+[![License](https://img.shields.io/badge/license-MIT-34d399)](./LICENSE)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20me-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/adrohal)
 
-## What Does This App Do?
+[**Download the installer**](https://github.com/AdRohal/HTML2EXE/releases) · [Run from source](#run-it-from-the-source-code) · [Roadmap](./docs/ROADMAP.md) · [Support on Ko-fi](https://ko-fi.com/adrohal)
 
-- **HTML to EXE** — Take any web project (HTML, CSS, JavaScript) and package it as a native Windows desktop application (`.exe`). Users can run it without a browser, without a web server, without anything installed.
-- **Python to EXE** *(Beta)* — Convert Python scripts and projects into standalone `.exe` files. End users don't need Python installed on their machine.
-- **Web to Android APK** *(Beta)* — Convert HTML, React, Vue, and other web projects into native Android APK files. Works best with plain HTML/CSS/JS and React projects.
+<img src="./docs/images/dashboard.png" alt="The HTML2EXE dashboard" width="860">
 
----
-
-## Features
-
-| Feature | Description |
-|---------|-------------|
-| **Single `.exe` output** | Everything bundled into one file — just share it |
-| **No dependencies for end users** | Recipients don't need Python, Node.js, or anything else |
-| **Custom app icon** | Upload a `.png` or `.ico` file as your app icon |
-| **Project management** | Create, import, and organize multiple projects |
-| **Framework detection** | Auto-detects React, Vue, Angular, jQuery, Svelte, Bootstrap, Tailwind, Next.js, etc. |
-| **Python to EXE (Beta)** | Convert Python projects with auto-detected imports and data files |
-| **Web to Android APK (Beta)** | Convert web projects to native Android APKs using Capacitor |
-| **Professional GUI** | Modern, frameless dark-themed desktop interface built with PyWebView |
-| **Color & Theme panel** | Manage and explore color palettes for your projects |
+</div>
 
 ---
 
-## System Requirements
+## What it does
 
-### To Run the Builder App (Developer Machine)
+HTML2EXE is a desktop app. You pick a folder, it works out what is inside, and it gives you a finished Windows program: a single portable `.exe`, or a `Setup.exe` installer.
 
-| Requirement | Details |
-|-------------|---------|
-| **Operating System** | Windows 10 or Windows 11 (64-bit) |
-| **Python** | Version **3.8 to 3.12** recommended. Python 3.13+ works but requires PyInstaller 6.10+ |
-| **pip** | Python package manager (included with Python) |
-| **Disk Space** | ~500 MB free (for Python packages and build output) |
-| **RAM** | 4 GB minimum, 8 GB recommended |
-| **Internet** | Required only for initial package installation |
+| Tool | What you give it | What you get | Status |
+|---|---|---|---|
+| **Website to EXE** | A website or web app: plain HTML, React, Vue, Svelte, Astro, Next.js, Nuxt, Angular, Gatsby, SvelteKit, a Node project with a build script. PHP and Laravel (experimental) | A portable `.exe` or an installer. People who run it need nothing installed | Ready |
+| **Python to EXE** | A Python script or project folder | A portable `.exe` / folder, or an installer | Ready |
+| **Website to Android (APK)** | A web project | An installable `.apk` (using Capacitor) | **Under work (beta)** |
 
-### For Android APK Building (Web to Android)
-
-These are **optional** — only needed if using the Web to Android feature:
-
-| Requirement | Details |
-|-------------|---------|
-| **Java Development Kit (JDK)** | Java 17–24 (bundled with Android Studio JBR is auto-detected) |
-| **Android SDK** | Installed at `%LOCALAPPDATA%\Android\Sdk` (Android Studio handles this) |
-| **Node.js** | v18+ (required for npm and web framework builds) |
-| **Gradle** | Auto-downloaded on first build (~500 MB) |
-
-> **Tip:** Install [Android Studio](https://developer.android.com/studio) for the easiest setup. It includes JDK, SDK, and Gradle. The builder auto-detects these.
-
-### For End Users (Running the Generated Files)
-
-| File Type | Requirements |
-|-----------|--------------|
-| **Windows `.exe`** | Windows 10+ (64-bit) — no Python, no install needed |
-| **Android `.apk`** | Android 6.0+ device — install like any app |
-| **Python `.exe`** | Windows 10+ (64-bit) — no Python, no install needed |
+Everything runs on your PC. Nothing is uploaded anywhere.
 
 ---
 
-## Installation
+## Download and install
 
-### 1. Clone the Repository
+1. Open the [**Releases**](https://github.com/AdRohal/HTML2EXE/releases) page and download `HTML2EXE-Installer-V2.5.exe`.
+2. Run it. The wizard shows the license, then asks where to install:
+   - **Only for me** (recommended): no administrator permission needed.
+   - **For all users of this PC**: Windows asks for administrator permission and it installs to `Program Files`.
+3. Start **HTML2EXE** from the Start menu or the desktop shortcut.
 
-```bash
-git clone https://github.com/AdRohal/HTML2EXE.git
-cd HTML2EXE
-```
+<p align="center">
+  <img src="./docs/images/installer-welcome.png" alt="Installer: welcome" width="31%">
+  <img src="./docs/images/installer-license.png" alt="Installer: license" width="31%">
+  <img src="./docs/images/installer-options.png" alt="Installer: options" width="31%">
+</p>
 
-### 2. Create a Virtual Environment (Recommended)
+To remove it: Windows **Settings > Apps**, or run `HTML2EXE.exe --uninstall`.
 
-```bash
-python -m venv .venv
-```
+> **Check your download (optional).** Each release has a `.sha256` file. In PowerShell: `Get-FileHash .\HTML2EXE-Installer-V2.5.exe -Algorithm SHA256`, then compare it with the file.
+>
+> **SmartScreen.** The installer is not code-signed, so Windows may say "unknown publisher". Choose *More info > Run anyway*. Signing needs a paid certificate.
 
-Activate it:
+### Requirements
+
+| To... | You need |
+|---|---|
+| Run HTML2EXE | Windows 10 or 11 (64-bit) and the WebView2 runtime (already on current Windows) |
+| Build apps | **Python 3.10+** (tested on 3.12) with `pip install pyinstaller pywebview Pillow cryptography`, because HTML2EXE packages with PyInstaller. The **System check** page shows what is missing |
+| Build React, Vue, Next.js... | **Node.js 18+** |
+| Make nicer installers (optional) | [Inno Setup 6](https://jrsoftware.org/isdl.php). Without it the built-in installer is used |
+| Build Android apps (beta) | JDK 17+, Android SDK, Node.js |
+| Run the apps you make | Nothing |
+
+---
+
+## How to use it
+
+### 1. Website to EXE
+
+Pick the project folder (or paste its path). HTML2EXE detects the framework, builds it when needed (`npm install` and the build script), tests the result and packs it.
+
+<img src="./docs/images/website-to-exe.png" alt="Website to EXE" width="860">
+
+- **Portable or installer.** A portable app is one `.exe` file; an installer adds Start menu and desktop shortcuts, appears in Windows Apps and can be removed cleanly. Version and publisher are set here.
+- **Icon.** Leave it empty and HTML2EXE looks for your site's icon: `<link rel="icon">`, the web manifest, `favicon`, `logo`, `apple-touch-icon`... It shows what it found. You can remove it or choose your own PNG or ICO.
+- **Window options.** Size, resizable, full screen. Next.js can be a static export or a server app (see below).
+- **Your original folder is never changed.** Builds use a temporary copy that is deleted afterwards.
+
+### 2. Python to EXE
+
+<img src="./docs/images/python-to-exe.png" alt="Python to EXE" width="860">
+
+- It reads the project first: entry point (`main.py`, `app.py`... or a file with `if __name__ == "__main__"`), window app or command-line, `requirements.txt`, data files.
+- **Clean environment**: with a `requirements.txt` the program is built in its own virtual environment, so it only contains what the project lists.
+- Options: one file or one folder, hide the console, optimized bytecode, administrator prompt, hidden imports, version info in the file's Properties.
+- Options that only matter to developers carry a **For developers** tag, and the safe defaults carry **Recommended for production**.
+- A `.env` file is never bundled.
+
+### 3. Projects and Dashboard
+
+Every build is remembered. **Projects** lets you rebuild after changing your code, open the folder or delete the project. The **Dashboard** shows your numbers (projects, built apps, average size) and your latest builds.
+
+<img src="./docs/images/projects.png" alt="Projects" width="860">
+
+### 4. System check
+
+Shows which tools this PC has (Python, PyInstaller, Node.js, Inno Setup, WebView2, Java, Android SDK), what each one unlocks, and links to get what is missing.
+
+---
+
+## Website to Android (APK): under work
+
+<img src="./docs/images/android-beta.png" alt="Android APK (beta)" width="860">
+
+This tool is in **beta** and still being worked on.
+
+| Works | Still under work |
+|---|---|
+| Plain HTML/CSS/JS and React/Vue projects wrapped with Capacitor into a debug `.apk` | Next.js and Angular projects |
+| Prerequisite check (JDK, Android SDK, Node.js) | Release-signed APKs and Play Store bundles |
+| Live build log and cancel | Custom icons and splash screens |
+| | Faster first build (it downloads about 1 GB of Gradle files) |
+
+APKs are static sites: a site that needs its own backend or API routes will not work inside one.
+
+---
+
+## Apps with API routes and secrets (`.env.local`)
+
+A Next.js app with API routes needs a server, so HTML2EXE builds a **server app**: Next's standalone output plus the Node.js runtime, started on a free `127.0.0.1` port and shown in the same window.
+
+If the project has `.env.local` (or `.env`, `.env.production`...), the build screen lists the variables by **name, kind and length only**. Values are never shown, logged, or written into project files. You choose:
+
+| Choice | What happens |
+|---|---|
+| **Encrypt and bundle** (default) | AES-256-GCM encrypted inside the `.exe`, decrypted in memory when the app starts |
+| **Do not bundle** | Nothing secret in the `.exe`; each user adds their own `.env` in the app's data folder (`%LOCALAPPDATA%\H2E-<app>\.env`) |
+
+The build redacts secrets in the log and scans the built files for leaked values. `NEXT_PUBLIC_*`, `VITE_*` and similar variables are public by design.
+
+**Be honest about the limits.** Encryption stops copying and text searches. It cannot stop someone who reverse-engineers the `.exe`, because a program that decrypts its own secrets can be made to show them. Fine for keys you can rotate or apps you share with people you trust. Do not ship database passwords or private keys to strangers: keep those on a server.
+
+---
+
+## Run it from the source code
 
 ```powershell
-# Windows PowerShell
+git clone https://github.com/AdRohal/HTML2EXE.git
+cd HTML2EXE
+python -m venv .venv
 .venv\Scripts\Activate.ps1
-
-# Windows CMD
-.venv\Scripts\activate.bat
-```
-
-### 3. Install Dependencies
-
-```bash
 pip install -r requirements.txt
-```
-
-This installs:
-- **pywebview** (>= 5.0) — Desktop GUI framework (renders the HTML interface)
-- **pyinstaller** (>= 6.10) — Packages Python apps into standalone executables
-- **Pillow** (>= 10.0) — Image processing (converts PNG icons to ICO format)
-
-### 4. Run the App
-
-```bash
 python builder.py
 ```
 
-The builder GUI will open automatically.
+`requirements.txt` installs `pywebview`, `pyinstaller`, `Pillow` and `cryptography`.
 
----
+**Run the tests**
 
-## How to Use
+```powershell
+python -m unittest discover -s tests            # fast unit tests (about 155)
+python tests/e2e_python.py                      # slow: real Python build
+python tests/e2e_python_installer.py builtin    # slow: build, install, run, uninstall (or: inno)
+```
 
-### Converting HTML to EXE
+**Build the release installer** (this makes `release/HTML2EXE-Installer-V<version>.exe` and its `.sha256`):
 
-1. Open the app (`python builder.py`)
-2. Go to **Existing Project** in the sidebar
-3. Click **Browse Folder** and select your HTML project folder
-4. Fill in the project name, author, and description
-5. Click **Add Existing Project**
-6. Go to **Build System** in the sidebar
-7. Select your project from the dropdown
-8. Optionally set a custom icon (`.png` or `.ico`)
-9. Click **Start Building**
-10. Your `.exe` will be saved to your **Downloads** folder
+```powershell
+python tools/build_release.py
+```
 
-### Converting Python to EXE (Beta)
+It packs HTML2EXE without `tests/`, `docs/` or tooling folders and wraps it in the branded installer. The version comes from `APP_VERSION` in `h2e/dashboard.py`.
 
-1. Open the app (`python builder.py`)
-2. Go to **Python to EXE** in the sidebar
-3. Click **Browse Project** and select your Python project folder
-4. Set the executable name and optional icon
-5. Configure options (hide console, single file, etc.)
-6. Click **Start Conversion**
-7. Your `.exe` will be saved to your **Downloads** folder
-
-> **Tip:** Your Python project should have a `main.py`, `app.py`, or `run.py` as the entry point. If none of these exist, the first `.py` file found will be used.
-
-### Converting Web to Android APK (Beta)
-
-1. Open the app (`python builder.py`)
-2. Go to **Web to Android** in the sidebar
-3. Check **Prerequisites** — ensure Java, Android SDK, and Node.js are installed (green checkmarks)
-4. Under **Web Source**, select your web project folder (HTML, React, Vue, etc.)
-5. Fill in package name (e.g., `com.example.myapp`) and app name
-6. Click **Build APK**
-7. The builder will:
-   - Detect your framework (plain HTML, React, Vue, etc.)
-   - Build the web project (if needed)
-   - Initialize Capacitor and Gradle
-   - Compile the APK
-8. Your `.apk` file will be saved to `Documents\HTML2EXE_Android\<app_name>\android\app\build\outputs\apk\debug\`
-
-> **Note:** The first APK build takes **5–15 minutes** — Gradle downloads 1+ GB of dependencies. Subsequent builds are faster.
-
-### Web to Android Support Matrix
-
-| Framework | Status | Notes |
-|-----------|--------|-------|
-| **Plain HTML/CSS/JS** | ✅ Fully Supported | Works perfectly |
-| **React (Vite, Create React App)** | ✅ Fully Supported | Detects and builds automatically |
-| **Vue (Vite)** | ✅ Fully Supported | Works out of the box |
-| **Svelte / SvelteKit** | ✅ Fully Supported | Builds to static site |
-| **Angular** | 🚧 In Development | API routes block static export; need workaround |
-| **Next.js 13+ (App Router)** | 🚧 In Development | API routes / dynamic routes require stubbing; fallback uses `.next/server/app` |
-| **Nuxt 3** | ⚠️ Experimental | Should work; not fully tested |
-| **Gatsby** | ⚠️ Experimental | Limited testing |
-
-> **Limitations:** 
-> - No server-side features (API routes, SSR, form submission to backend)
-> - No external API calls (CORS blocks requests)
-> - localStorage and sessionStorage work fine
-> - Web Workers and Service Workers untested
-
----
-
-## What Works in the Generated Files
-
-### HTML to EXE & Web to Android APK
-
-### HTML to EXE & Web to Android APK
-
-| Supported | Not Supported |
-|-----------|---------------|
-| HTML5 / CSS3 | Node.js / npm modules |
-| Vanilla JavaScript | Back-end servers / API routes |
-| DOM manipulation | Electron-specific APIs |
-| Canvas & SVG | Direct file system access (except Android storage) |
-| localStorage API | CORS-blocked external API calls |
-| sessionStorage API | Server-side rendering (SSR) |
-| Fetch API (local) | WebSockets |
-| ES6+ features | Backend form submission |
-| React, Vue, Svelte | External CDN resources (must be bundled) |
-| CSS animations & transitions | Plugins that require server |
-
-> **For Android:** Capacitor provides limited file system and device access APIs. Most web projects work unchanged, but server-dependent features won't function without a backend.
-
-### Python to EXE
-
-| Supported | Notes |
-|-----------|-------|
-| Standard Python scripts | Auto-detects entry point |
-| Third-party packages | Auto-detected from imports |
-| Data files (JSON, YAML, CSV, etc.) | Bundled automatically |
-| GUI frameworks (tkinter, PyQt, etc.) | Works out of the box |
-| Web frameworks (Flask, Django) | Requires proper configuration |
-
----
-
-## Project Structure
+**Project layout**
 
 ```
-HTML2EXE/
-├── builder.py              # Main application (backend + API + build logic)
-│                           # Includes: HTML→EXE, Python→EXE, Web→Android APK builders
-├── requirements.txt        # Python dependencies
-├── README.md               # This file
-├── builder_ui/             # Frontend UI files
-│   ├── index.html          # Main HTML interface (Dashboard, Build System, Python to EXE, Web to Android)
-│   ├── style.css           # Dark theme styling
-│   ├── script.js           # Frontend logic & event handlers
-│   ├── api.js              # API communication layer
-│   └── assets/             # Images, logos, etc.
-├── projects/               # Local project templates
-└── sample_project/         # Example HTML project
-    ├── index.html
-    ├── style.css
-    ├── script.js
-    └── project.json
+builder.py            window + local API (token protected)
+builder_ui/           the interface (index.html, style.css, app.js, assets)
+h2e/
+  exe_build.py        website -> EXE pipeline
+  recipes.py          framework detection and builds (npm, Next.js, PHP)
+  python_builder.py   Python -> EXE
+  installer.py        installers: Inno Setup and the built-in branded wizard
+  secrets.py          .env encryption (AES-256-GCM) and leak scan
+  iconfinder.py       finds the icon of a project
+  workspace.py        temporary working copies and caches
+  jobs.py             background jobs, live log, cancel
+  dashboard.py        numbers for the dashboard
+  android_builder.py  Android (Capacitor), beta
+tests/                unit tests and slow end-to-end scripts
+tools/build_release.py
+docs/                 roadmap and screenshots
 ```
 
 ---
 
-## Storage Locations
+## Releases
+
+| Version | Highlights |
+|---|---|
+| **V2.5** (current) | New dashboard, Website to EXE and Python to EXE redesigned, portable or installer for both, Next.js server mode with encrypted `.env`, automatic icon detection, branded installer with license, per-user or all-users install |
+
+All versions are on the [Releases](https://github.com/AdRohal/HTML2EXE/releases) page. Planned work is in the [roadmap](./docs/ROADMAP.md).
+
+---
+
+## Where files go
 
 | What | Where |
-|------|-------|
-| Project metadata | `Documents\HTML2EXE\<project_name>\project.json` |
-| Project files (copied) | `Downloads\<project_name>\` |
-| Built `.exe` files | `Downloads\` |
-| Python build cache | `Documents\HTMLToExe_PythonBuilds\` |
-| Android build working dir | `Documents\HTML2EXE_Android\<app_name>\` |
-| Built `.apk` file | `Documents\HTML2EXE_Android\<app_name>\android\app\build\outputs\apk\debug\` |
+|---|---|
+| Finished `.exe` / `Setup.exe` | `Downloads\` |
+| Project list and settings | `Documents\HTML2EXE\<project>\` |
+| Build caches (`node_modules`, Python environments) | `Documents\HTML2EXE\<project>\cache\` |
+| Temporary working copy while building | `Downloads\<project>\`, deleted when the build ends |
+| Android builds (beta) | `Documents\HTML2EXE_Android\<app>\` |
+| A built app's saved data | `%LOCALAPPDATA%\H2E-<app>\` |
 
 ---
 
 ## Troubleshooting
 
-### General
-
-| Problem | Solution |
-|---------|----------|
-| `ModuleNotFoundError: No module named 'webview'` | Run `pip install pywebview` |
-| `ModuleNotFoundError: No module named 'pkg_resources'` | Upgrade: `pip install pyinstaller>=6.10` |
-| `ImportError: get_module_collection_mode` | Upgrade: `pip install pyinstaller>=6.10` |
-| Builder GUI won't start | Run `pip install -r requirements.txt --upgrade` |
-| Build fails with path errors | Ensure project path has no special/unicode characters |
-
-### HTML to EXE
-
-| Problem | Solution |
-|---------|----------|
-| Antivirus blocks the `.exe` | Add an exception in your antivirus software |
-| `.exe` shows "Failed to load Python DLL" | Rebuild using **single file** mode (default) |
-| First launch of `.exe` is slow | Normal — single-file mode extracts to temp on first run |
-
-### Python to EXE (Beta)
-
-| Problem | Solution |
-|---------|----------|
-| Missing module errors in `.exe` | Add module to **data files** if it's not auto-detected |
-| `.exe` won't find config files | Use relative paths or ship files in project root |
-
-### Web to Android APK (Beta)
-
-| Problem | Solution |
-|---------|----------|
-| `JAVA_HOME is not set` | Install Android Studio; builder auto-detects JBR or set `JAVA_HOME` manually |
-| `Android SDK not found` | Install Android Studio or set `ANDROID_HOME` environment variable |
-| Gradle build timeout (>30 min) | First build downloads 1+ GB — this is normal; check disk space |
-| White screen / blank APK | Web project didn't build correctly; check build logs for errors |
-| APK install fails on device | Device must be Android 6.0+; allow installation from unknown sources |
-| API routes don't work in APK | By design — APKs are static sites; no backend server available |
-| Next.js/Angular APK fails | Framework needs more work; stick to plain HTML/React/Vue for now |
+| Problem | What to do |
+|---|---|
+| A tool shows as missing | Open **System check**; each row has a link to get it |
+| Python build: a module is missing in the `.exe` | Add it to `requirements.txt` or list it under hidden imports; the build log names modules PyInstaller could not find |
+| Antivirus flags a built `.exe` or Setup | Unsigned programs are sometimes flagged by heuristics. Install Inno Setup for installers, and add an exception for your own builds |
+| "The requested operation requires elevation" | Fixed in V2.5: the installer now starts the app through Windows so the administrator prompt appears |
+| Android: `JAVA_HOME` or SDK not found | Install Android Studio, or set `JAVA_HOME` / `ANDROID_HOME` |
+| First Android build takes very long | It downloads about 1 GB; this is normal |
 
 ---
 
-## FAQ
+## Support the project
 
-**Q: Does the end user need Python installed?**
-A: No. The `.exe` includes the Python runtime and all dependencies.
+HTML2EXE is free and built by one person. If it saves you time, you can buy me a coffee.
 
-**Q: Does it work on Mac or Linux?**
-A: No. This tool builds Windows `.exe` files only and requires Windows to run. However, generated APKs work on any Android device.
-
-**Q: Why is the `.exe` file so large (~150–300 MB)?**
-A: The entire Python runtime and all required libraries are bundled inside. This is normal for PyInstaller builds.
-
-**Q: Can I use React/Vue/Angular projects?**
-A: Yes! Import your **built** project folder (the `dist` or `build` output) for EXE. For APK, React and Vue work great; Angular is still in development.
-
-**Q: The `.exe` is flagged by antivirus. Is it safe?**
-A: Yes. PyInstaller-generated executables are commonly flagged as false positives. You can submit them to your antivirus vendor for whitelisting.
-
-**Q: The first launch of my EXE is slow. Is that normal?**
-A: Yes. Single-file mode extracts files to a temporary folder on the first run. Subsequent launches are faster.
-
-**Q: What's the difference between HTML to EXE and Web to Android APK?**
-A: **EXE** packages web apps as Windows desktop apps (Windows 10+). **APK** packages the same web app as a native mobile app (Android 6.0+).
-
-**Q: Does the APK require an internet connection?**
-A: No. The app is entirely self-contained. However, any features that call external APIs will need internet.
-
-**Q: Why don't API routes work in the APK?**
-A: APKs are static sites — there's no Node.js backend. Server-side features (API routes, database calls, etc.) won't work. Use a real backend service if needed.
-
-**Q: Can I use Next.js or Angular with APK?**
-A: Partially. Plain Next.js/Angular apps work as fallback (extracted from `.next/server/app`). However, features like dynamic routes, API routes, and SSR won't fully work. We're working to improve this.
-
-**Q: How much storage does the APK use?**
-A: Typically 30–150 MB depending on the web project. Larger with images/videos.
-
-**Q: Can I distribute the APK on Google Play Store?**
-A: Yes, but you'll need a Play Store developer account, signing key, and to follow their guidelines. The APK is just a regular app from a Play Store perspective.
+<p align="center">
+  <a href="https://ko-fi.com/adrohal"><img src="https://img.shields.io/badge/Support%20me%20on%20Ko--fi-ff5e5b?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support me on Ko-fi"></a>
+</p>
 
 ---
 
-## Quick Start
+## Author and license
 
-```bash
-# 1. Install dependencies
-pip install -r requirements.txt
+Made by **AdRohal** · [ko-fi.com/adrohal](https://ko-fi.com/adrohal) · [Rohal.dev@hotmail.com](mailto:Rohal.dev@hotmail.com)
 
-# 2. Run the builder
-python builder.py
-
-# 3a. Convert HTML to EXE
-#     - Go to "Build System" → import project → build
-#
-# 3b. Convert Python to EXE
-#     - Go to "Python to EXE" → select script → build
-#
-# 3c. Convert Web to Android APK
-#     - Go to "Web to Android" → select web project → build APK
-#     - (Requires Android SDK, Java, Node.js — builder checks for you)
-
-# 4. Share the output file with users — they just double-click to run!
-```
-
----
-
-## Version History
-
-- **v2.0** (Current) — Web to Android APK support, dark theme redesign, copy log output, improved Next.js handling
-- **v1.0** — Initial release with HTML to EXE and Python to EXE
-
----
-
-## License
-
-Free to use for personal and commercial projects.
-
-## Resources
-
-### General
-- [PyWebView Documentation](https://pywebview.flowrl.com/)
-- [PyInstaller Documentation](https://pyinstaller.org/)
-- [HTML5 Reference](https://developer.mozilla.org/docs/Web/HTML)
-- [CSS3 Reference](https://developer.mozilla.org/docs/Web/CSS)
-
-### Web to Android (Capacitor)
-- [Capacitor Documentation](https://capacitorjs.com/)
-- [Capacitor Android Guide](https://capacitorjs.com/docs/android)
-- [Gradle Documentation](https://gradle.org/docs/)
-- [Android Developer Docs](https://developer.android.com/)
-- [Next.js Static Export](https://nextjs.org/docs/advanced-features/static-html-export)
+Released under the [MIT License](./LICENSE).
