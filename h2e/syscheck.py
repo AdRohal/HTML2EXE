@@ -1,6 +1,5 @@
 """System check: what is installed and what each feature needs."""
 import importlib.util
-import os
 import shutil
 import subprocess
 import sys
@@ -73,6 +72,12 @@ def run_checks(android_check=None):
     composer = shutil.which('composer') or shutil.which('composer.bat')
     add('composer', 'Composer (optional)', composer, 'found' if composer else 'not found',
         'Laravel projects without a vendor/ folder', 'https://getcomposer.org')
+
+    from . import installer
+    inno = installer.find_inno()
+    add('inno', 'Inno Setup (optional)', inno, 'found' if inno else 'not found (the built-in installer is used)',
+        'Installers (Setup.exe) - recommended: they look native and antivirus programs rarely flag them',
+        'https://jrsoftware.org/isdl.php')
 
     wv2 = webview2_installed()
     add('webview2', 'WebView2 Runtime', wv2, str(wv2) if wv2 else 'not found',

@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "builder_ui/index.html"
+        ],
+        "createdAt": "2026-11-24T09:56:06.321Z",
+        "reason": "assistant: both <img> (buildIconPreview, pythonIconPreview) are display:none previews whose src is set by setupIconPreview() in script.js from the chosen icon file; user did not review"
+      },
+      {
+        "rule": "marquee",
+        "value": "*",
+        "files": [
+          "builder_ui/index.html"
+        ],
+        "createdAt": "2026-11-24T10:51:07.135Z",
+        "reason": "assistant: the only infinite loop is the indeterminate progress bar on the active build step (class feed in style.css): it conveys running state, exists only during a build, and is static under prefers-reduced-motion. user did not review"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "builder_ui/index.html"
+        ],
+        "createdAt": "2026-11-24T14:01:05.189Z",
+        "reason": "user confirmed: the owner asked to keep the original violet colours, navy background and logo (the HTML2EXE brand palette); DESIGN.md declares primary #a78bfa"
+      }
+    ]
+  }
+}

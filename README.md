@@ -120,25 +120,22 @@ The builder GUI will open automatically.
 
 ### Converting HTML to EXE
 
-1. Open the app (`python builder.py`)
-2. Go to **Existing Project** in the sidebar
-3. Click **Browse Folder** and select your HTML project folder
-4. Fill in the project name, author, and description
-5. Click **Add Existing Project**
-6. Go to **Build System** in the sidebar
-7. Select your project from the dropdown
-8. Optionally set a custom icon (`.png` or `.ico`)
-9. Click **Start Building**
-10. Your `.exe` will be saved to your **Downloads** folder
+1. Open the app (`python builder.py`). **Build app** is the first screen.
+2. Click **Browse for folder** (or paste a path and press Enter). Pick the folder that holds your `index.html`, or your React / Vue / Astro / Next.js / Nuxt / Angular / SvelteKit / PHP / Laravel project.
+3. Check what was detected, set the app name, and optionally an icon and window size. Choose what to create: a **portable app** (one .exe) or an **installer** (see below).
+4. Click **Build EXE** (or **Build installer**). A strip of steps (Prepare, Build site, Package, Verify) shows progress with a live log and a Cancel button.
+5. The result is saved to your **Downloads** folder, and the builder checks it before reporting success (the .exe is started once; an installer verifies its own contents). **Open folder** takes you there. Downloads contains only the finished file: the temporary working copy the build used is deleted.
+
+Built apps are listed under **Projects**, where **Rebuild** picks up changes from the original folder with one click.
 
 ### Converting Python to EXE (Beta)
 
 1. Open the app (`python builder.py`)
 2. Go to **Python to EXE** in the sidebar
-3. Click **Browse Project** and select your Python project folder
+3. Click **Browse** and select your Python script or project folder
 4. Set the executable name and optional icon
 5. Configure options (hide console, single file, etc.)
-6. Click **Start Conversion**
+6. Click **Convert to EXE**
 7. Your `.exe` will be saved to your **Downloads** folder
 
 > **Tip:** Your Python project should have a `main.py`, `app.py`, or `run.py` as the entry point. If none of these exist, the first `.py` file found will be used.
@@ -146,9 +143,9 @@ The builder GUI will open automatically.
 ### Converting Web to Android APK (Beta)
 
 1. Open the app (`python builder.py`)
-2. Go to **Web to Android** in the sidebar
-3. Check **Prerequisites** — ensure Java, Android SDK, and Node.js are installed (green checkmarks)
-4. Under **Web Source**, select your web project folder (HTML, React, Vue, etc.)
+2. Go to **Android APK** in the sidebar
+3. Check the prerequisites strip: Java, Android SDK and Node.js should all say Ready (the build button stays off until they do)
+4. Under **Web project folder**, browse to your project (HTML, React, Vue, etc.) or pick a recent one
 5. Fill in package name (e.g., `com.example.myapp`) and app name
 6. Click **Build APK**
 7. The builder will:
@@ -170,9 +167,12 @@ Every row below is covered by an automated build in `tests/` (real `npm` build, 
 | **Vite** (React, Vue, Svelte, Solid, Preact) | Supported | `npm install` + `npm run build`, serves `dist/` |
 | **Create React App** | Supported | `npm run build`, serves `build/` |
 | **Astro** (static output) | Supported | `npm run build`, serves `dist/`. SSR (`output: 'server'`) is rejected with an explanation |
-| **Next.js** (static export) | Supported | `output: 'export'` is applied temporarily and your `next.config` is restored afterwards. API routes / SSR cannot work in a desktop EXE |
+| **Next.js** (no server code) | Supported | `output: 'export'` is applied temporarily (works with `next.config.js`, `.mjs`, `.cjs` and `.ts`) and your config is restored afterwards |
+| **Next.js with API routes / route handlers / middleware** | Supported (server mode) | Built with `output: 'standalone'` and packed together with the Node.js runtime; the .exe starts its own local server on `127.0.0.1` (adds about 90 MB). Secrets from `.env.local` are encrypted, see below |
 | **Nuxt 3** | Supported | `nuxt generate`, serves `.output/public` |
-| **Angular / Gatsby / SvelteKit** | Supported (detect + build, not yet covered by an automated real build) | SvelteKit needs `adapter-static` |
+| **Angular** (17+/18 `application` builder) | Supported | `ng build`, serves `dist/<name>/browser` |
+| **Gatsby 5** | Supported | `gatsby build`, serves `public/` |
+| **SvelteKit 2 and 3** | Supported | Needs `@sveltejs/adapter-static` (set in `svelte.config.js`, or in the `sveltekit()` plugin options for SvelteKit 3) and `export const prerender = true` |
 | **PHP** (plain) | Experimental | A portable PHP is downloaded once and bundled into the EXE |
 | **Laravel** | Experimental | Needs `vendor/` (or Composer installed). SQLite database and `.env` are created per user in `%LOCALAPPDATA%` |
 
@@ -235,23 +235,108 @@ Generated apps handle client-side routing (React Router, Vue Router history mode
 
 ```
 HTML2EXE/
-├── builder.py              # Main application (backend + API + build logic)
-│                           # Includes: HTML→EXE, Python→EXE, Web→Android APK builders
-├── requirements.txt        # Python dependencies
-├── README.md               # This file
-├── builder_ui/             # Frontend UI files
-│   ├── index.html          # Main HTML interface (Dashboard, Build System, Python to EXE, Web to Android)
-│   ├── style.css           # Dark theme styling
-│   ├── script.js           # Frontend logic & event handlers
-│   ├── api.js              # API communication layer
-│   └── assets/             # Images, logos, etc.
-├── projects/               # Local project templates
-└── sample_project/         # Example HTML project
-    ├── index.html
-    ├── style.css
-    ├── script.js
-    └── project.json
+├── builder.py              # App entry point: local HTTP API handler + builder window
+├── h2e/                    # Build engine (one module per concern)
+│   ├── recipes.py          # Detect framework -> install -> build -> find output (Vite, CRA, Astro,
+│   │                       #   Next.js, Nuxt, Angular, Gatsby, SvelteKit, PHP, Laravel)
+│   ├── exe_build.py        # Packs a site/PHP app into an EXE with PyInstaller + self-test
+│   ├── launcher.py         # Code embedded in every generated EXE (SPA server, PHP, WebView2 check)
+│   ├── php_runtime.py      # Downloads/caches a portable PHP for PHP and Laravel apps
+│   ├── python_builder.py   # Python script/project -> EXE
+│   ├── android_builder.py  # Web project -> Android APK (Capacitor)
+│   ├── analyzer.py         # Looks at a folder and guesses the project type
+│   ├── installer.py        # Builds <App>-Setup.exe (wizard, silent mode, hash check, Apps & features entry)
+│   ├── workspace.py        # Temporary working copy in Downloads: create, park caches, delete safely
+│   ├── winshell.py         # Desktop / Start menu folders (shared by installer and installed app)
+│   ├── secrets.py          # .env files: parse, classify, AES-256-GCM encrypt, log redaction helpers, leak scan
+│   ├── templates.py        # Starter projects for "Create project"
+│   ├── jobs.py             # Background jobs: live log, Cancel, streamed subprocesses
+│   ├── security.py         # API token, Origin/Host checks, safe ids and paths
+│   └── syscheck.py         # "System Check" page data
+├── builder_ui/             # Frontend: index.html, style.css, app.js (no framework, no build step)
+├── tests/                  # Unit tests (python -m unittest discover -s tests)
+│   └── e2e_*.py            # Slow real-build tests (need internet / Node), see their docstrings
+├── docs/ROADMAP.md         # Audit and phased plan
+├── requirements.txt
+└── LICENSE                 # MIT
 ```
+
+---
+
+## Portable app or installer
+
+On the Build screen you choose what the build produces:
+
+| | Portable app | Installer |
+|---|---|---|
+| File | `<App>.exe` | `<App>-Setup.exe` |
+| Use | Double-click to run. Nothing is installed. | Installs the app on a PC. |
+| Shortcuts | none | Start menu and desktop (the person installing can untick them) |
+| Removal | delete the file | Windows settings, Apps (or `<App>.exe --uninstall`) |
+
+Two installer engines, chosen automatically:
+
+| Engine | When | Notes |
+|---|---|---|
+| **Inno Setup 6** (preferred) | `ISCC.exe` is installed (free, https://jrsoftware.org/isdl.php; shown on the System check page) | The Windows standard: native look, and antivirus programs rarely flag it. Silent install: `Setup.exe /VERYSILENT`. |
+| **Built-in installer** | Inno is not installed | Works with nothing extra. It is a small generated program, and unsigned programs like it are sometimes flagged by antivirus *heuristics* (false positives). The builder never uses hidden PowerShell or other malware-like tricks in it, but if you ship installers to other people, install Inno Setup. Silent install: `Setup.exe /S`. |
+
+Both are per-user and add the app to Windows' Apps list. What the built-in installer does in detail (Inno does the equivalent):
+
+- **Per user, no administrator rights.** Default folder `%LOCALAPPDATA%\Programs\<App>`; the person can pick another.
+- **Wizard or silent.** `<App>-Setup.exe /S` installs silently; add `/D=C:\some\folder`, `--no-desktop`, `--no-startmenu`, `--launch`.
+  Exit code 0 means success, 1 failure; a log is written to `%TEMP%\<App>-setup.log`.
+- **Checks itself.** The installer verifies the SHA-256 of the app inside it while copying; a damaged download refuses to
+  install and leaves nothing behind. The builder also runs this check before it reports success.
+- **Shows up in Apps & features** with name, version and publisher (set both in the build options, version like `1.0.0`).
+- **Updates in place.** Running a newer Setup over an existing install replaces the app and keeps the user's own data.
+  If the app is running, Setup asks to close it instead of failing half-way.
+- **Uninstalls cleanly.** Removes the shortcuts, the Apps & features entry and the program folder; asks whether to also
+  delete the app's saved data (`%LOCALAPPDATA%\H2E-<App>`). It only ever deletes the folder Windows has registered for
+  the app, so a copy of the app run from somewhere else refuses to remove anything.
+
+Windows may show a SmartScreen "unknown publisher" warning for any program that is not code-signed, installer or not.
+Signing needs a certificate and is not part of HTML2EXE.
+
+---
+
+## Apps with API routes and secrets (`.env.local`)
+
+A Next.js app that has API routes (or route handlers, middleware, server components that call APIs) needs a
+server. HTML2EXE detects this and builds a **server app**: Next's standalone output plus the Node.js runtime,
+started on a free `127.0.0.1` port when the .exe opens and shown in the same window.
+
+If the project has `.env.local` (or `.env`, `.env.production`, `.env.production.local`, loaded in Next's order),
+the Build screen lists the variables by **name, kind and length only**. Values are never shown on screen, never
+logged, and never stored in project files. You choose what to ship:
+
+| Choice | What happens |
+|--------|--------------|
+| **Encrypt and bundle** (default) | Values are encrypted with AES-256-GCM and stored inside the .exe. The app decrypts them **in memory** when it starts and hands them to its server through the process environment. The data is bound to that exact build and a modified file refuses to decrypt. |
+| **Do not bundle** | Nothing secret is stored in the .exe. Each person puts their own keys in a `.env` file in the app's data folder (`%LOCALAPPDATA%\H2E-<app name>\.env`). |
+
+A `.env` file in that data folder also overrides bundled values with either choice.
+
+How the secrets are kept out of harm's way during the build:
+
+- Env files are read from your **original** folder and given to `npm run build` through its environment (the way a
+  shell would). They are not copied into the working copy, the staged bundle or the .exe, and any copy left by an
+  older version is deleted from the working copy.
+- Secret values are redacted (`***`) in the live log, the copied log and error messages.
+- Before packaging, the builder **scans the built files** for the exact text of every secret. If one is found
+  (for example in a prerendered page or an inlined constant), the finished screen warns you by name.
+- `NEXT_PUBLIC_*` (and `VITE_*`, `REACT_APP_*` ...) variables are public by design: the framework writes them into
+  the page. They are marked *Public* and are not treated as secrets.
+
+**What this does and does not protect.** Encryption stops people from copying values out of the file, from
+searching it for text, and from reading it with a hex editor. It cannot stop someone who reverse-engineers the
+.exe, because any program that can decrypt its own secrets can be made to show them (the key must travel with the
+program). So:
+
+- Fine for keys you can rotate, or for an app you only run yourself or share with people you trust.
+- Not fine for database passwords or private keys in an app you hand to strangers. Put those on a server and let the
+  app call that server, or use **Do not bundle** and give every user their own credentials.
+- The local server listens on `127.0.0.1` only, but any program on the same PC can reach that port while the app runs.
 
 ---
 
@@ -260,8 +345,9 @@ HTML2EXE/
 | What | Where |
 |------|-------|
 | Project metadata | `Documents\HTML2EXE\<project_name>\project.json` |
-| Project files (copied) | `Downloads\<project_name>\` |
-| Built `.exe` files | `Downloads\` |
+| Temporary working copy of your project | `Downloads\<project_name>\` while building, **deleted when the build ends** (your original folder is never modified) |
+| Build caches (`node_modules`, `.next` ...) | `Documents\HTML2EXE\<project_name>\cache\`, kept so rebuilds are fast |
+| Built `.exe` / `-Setup.exe` | `Downloads\` |
 | Python build cache | `Documents\HTMLToExe_PythonBuilds\` |
 | Android build working dir | `Documents\HTML2EXE_Android\<app_name>\` |
 | Built `.apk` file | `Documents\HTML2EXE_Android\<app_name>\android\app\build\outputs\apk\debug\` |
@@ -359,7 +445,7 @@ pip install -r requirements.txt
 python builder.py
 
 # 3a. Convert HTML to EXE
-#     - Go to "Build System" → import project → build
+#     - Build app → Browse for folder → Build EXE
 #
 # 3b. Convert Python to EXE
 #     - Go to "Python to EXE" → select script → build
@@ -376,7 +462,7 @@ python builder.py
 ## Version History
 
 - **v2.1** (in progress) — Secured local API, background builds with live log + Cancel, System Check page, Astro / Next.js / Nuxt / PHP / Laravel recipes, SPA routing fix, build self-test
-- **v2.0** — Web to Android APK support, dark theme redesign, copy log output, improved Next.js handling
+- **v2.0** — Web to Android APK support, copy log output, improved Next.js handling
 - **v1.0** — Initial release with HTML to EXE and Python to EXE
 
 ---

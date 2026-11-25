@@ -6,6 +6,7 @@ import threading
 import time
 import unittest
 import urllib.request
+from unittest import mock
 from http.server import HTTPServer
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -54,6 +55,28 @@ class JobApiTests(unittest.TestCase):
         self.assertEqual(snap['status'], 'error')
         self.assertIn('Invalid project ID', snap['result']['error'])
 
+    def test_cancel_reports_cancelled_not_http_500(self):
+        """Cancel must reach the job runner as 'cancelled' through the API handler."""
+        def slow_convert(_data):
+            jobs.run([sys.executable, '-c', 'import time; print("tick", flush=True); time.sleep(60)'])
+            return {'success': True}, 200
+
+        with mock.patch.object(builder.python_builder, 'convert', slow_convert):
+            status, started = self.call('POST', '/api/convert-python-to-exe',
+                                        {'pythonPath': 'x', 'async': True})
+            job_id = started['jobId']
+            for _ in range(100):
+                _, snap = self.call('GET', f'/api/job-status?id={job_id}')
+                if 'tick' in snap['lines']:
+                    break
+                time.sleep(0.1)
+            t0 = time.time()
+            self.call('POST', '/api/job-cancel', {'id': job_id})
+            final = self.wait(job_id, timeout=15)
+        self.assertEqual(final['status'], 'cancelled')
+        self.assertEqual(final['result']['error'], 'Cancelled')
+        self.assertLess(time.time() - t0, 10)
+
     def test_unknown_job_is_404(self):
         status, _ = self.call('GET', '/api/job-status?id=nope')
         self.assertEqual(status, 404)
@@ -95,11 +118,15 @@ class JobApiTests(unittest.TestCase):
             time.sleep(0.05)
         self.assertEqual(job.status, 'cancelled')
 
-    def test_jobs_js_is_served(self):
-        req = urllib.request.Request(f'http://127.0.0.1:{self.port}/jobs.js')
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            self.assertIn(b'runJob', resp.read())
-
+    def test_ui_assets_are_served(self):
+        for path, needle in (('/app.js', b'runJob'), ('/style.css', b'--primary-dark')):
+            req = urllib.request.Request(f'http://127.0.0.1:{self.port}{path}')
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                self.assertIn(needle, resp.read(), path)
+        for gone in ('/script.js', '/jobs.js', '/api.js'):
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(f'http://127.0.0.1:{self.port}{gone}', timeout=10)
+            self.assertEqual(ctx.exception.code, 404, gone)
 
 if __name__ == '__main__':
     unittest.main()

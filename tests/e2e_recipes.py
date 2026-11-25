@@ -1,6 +1,6 @@
 """Real framework builds through the recipes (needs Node + internet; slow).
 
-    python tests/e2e_recipes.py [vite] [astro] [nextjs] [nuxt]
+    python tests/e2e_recipes.py [vite] [astro] [nextjs] [nuxt] [angular] [gatsby] [sveltekit] [sveltekit3]
 
 Each case writes a tiny project into a temp folder, runs recipes.prepare()
 (npm install + build) and checks the produced static folder.
@@ -57,11 +57,100 @@ def make_nuxt(base):
     write(base, 'nuxt.config.ts', 'export default defineNuxtConfig({ telemetry: false })\n')
 
 
+def lines(*parts):
+    return chr(10).join(parts) + chr(10)
+
+
+def make_angular(base):
+    pkg(base, 'ng-app', {
+        '@angular/animations': '^18.2.0', '@angular/common': '^18.2.0', '@angular/compiler': '^18.2.0',
+        '@angular/core': '^18.2.0', '@angular/platform-browser': '^18.2.0', 'rxjs': '~7.8.0',
+        'tslib': '^2.3.0', 'zone.js': '~0.14.10'},
+        {'build': 'ng build'},
+        {'@angular-devkit/build-angular': '^18.2.0', '@angular/cli': '^18.2.0',
+         '@angular/compiler-cli': '^18.2.0', 'typescript': '~5.5.2'})
+    write(base, 'angular.json', json.dumps({
+        '$schema': './node_modules/@angular/cli/lib/config/schema.json', 'version': 1,
+        'newProjectRoot': 'projects',
+        'projects': {'ng-app': {
+            'projectType': 'application', 'root': '', 'sourceRoot': 'src', 'prefix': 'app',
+            'architect': {'build': {
+                'builder': '@angular-devkit/build-angular:application',
+                'options': {'outputPath': 'dist/ng-app', 'index': 'src/index.html',
+                            'browser': 'src/main.ts', 'polyfills': ['zone.js'],
+                            'tsConfig': 'tsconfig.app.json'},
+                'configurations': {'production': {'outputHashing': 'all'}},
+                'defaultConfiguration': 'production'}}}},
+        'cli': {'analytics': False}}))
+    write(base, 'tsconfig.json', json.dumps({'compileOnSave': False, 'compilerOptions': {
+        'outDir': './dist/out-tsc', 'strict': True, 'skipLibCheck': True, 'target': 'ES2022',
+        'module': 'ES2022', 'moduleResolution': 'bundler', 'experimentalDecorators': True,
+        'importHelpers': True, 'lib': ['ES2022', 'dom']}}))
+    write(base, 'tsconfig.app.json', json.dumps({'extends': './tsconfig.json', 'compilerOptions': {
+        'outDir': './out-tsc/app', 'types': []}, 'files': ['src/main.ts'], 'include': ['src/**/*.d.ts']}))
+    write(base, 'src/index.html', '<!doctype html><html><head><base href="/"><title>ng</title></head>'
+                                  '<body><app-root></app-root></body></html>')
+    write(base, 'src/main.ts', lines(
+        "import { bootstrapApplication } from '@angular/platform-browser';",
+        "import { AppComponent } from './app/app.component';",
+        'bootstrapApplication(AppComponent).catch(console.error);'))
+    write(base, 'src/app/app.component.ts', lines(
+        "import { Component } from '@angular/core';",
+        "@Component({ selector: 'app-root', standalone: true, template: '<h1>angular-ok</h1>' })",
+        'export class AppComponent {}'))
+
+
+def make_gatsby(base):
+    pkg(base, 'g', {'gatsby': '^5.13.0', 'react': '^18.2.0', 'react-dom': '^18.2.0'},
+        {'build': 'gatsby build'})
+    write(base, 'gatsby-config.js', lines('module.exports = { siteMetadata: { title: "g" } }'))
+    write(base, 'src/pages/index.js', lines(
+        "import * as React from 'react'",
+        'export default function Home(){ return <h1>gatsby-ok</h1> }'))
+    write(base, 'src/pages/about.js', lines(
+        "import * as React from 'react'",
+        'export default function About(){ return <h1>gatsby-about</h1> }'))
+
+
+def make_sveltekit(base, dev=None):
+    dev = dev or {'@sveltejs/adapter-static': '^3.0.8', '@sveltejs/kit': '^2.20.0',
+                  '@sveltejs/vite-plugin-svelte': '^5.0.0', 'svelte': '^5.0.0', 'vite': '^6.0.0'}
+    write(base, 'package.json', json.dumps({
+        'name': 'sk', 'version': '1.0.0', 'private': True, 'type': 'module',
+        'scripts': {'build': 'vite build'}, 'devDependencies': dev}))
+    write(base, 'svelte.config.js', lines(
+        "import adapter from '@sveltejs/adapter-static';",
+        "export default { kit: { adapter: adapter({ fallback: 'index.html' }) } };"))
+    write(base, 'vite.config.js', lines(
+        "import { sveltekit } from '@sveltejs/kit/vite';",
+        'export default { plugins: [sveltekit()] };'))
+    write(base, 'src/app.html', '<!doctype html><html><head>%sveltekit.head%</head>'
+                                '<body><div>%sveltekit.body%</div></body></html>')
+    write(base, 'src/routes/+layout.js', lines('export const prerender = true;'))
+    write(base, 'src/routes/+page.svelte', '<h1>sveltekit-ok</h1>')
+    write(base, 'src/routes/about/+page.svelte', '<h1>svelte-about</h1>')
+
+
+def make_sveltekit3(base):
+    # SvelteKit 3 no longer reads svelte.config.js: options go to the sveltekit() plugin.
+    make_sveltekit(base, {'@sveltejs/adapter-static': '^4.0.0', '@sveltejs/kit': '^3.0.0',
+                          '@sveltejs/vite-plugin-svelte': '^7.0.0', 'svelte': '^5.57.1', 'vite': '^8.0.0'})
+    os.remove(os.path.join(base, 'svelte.config.js'))
+    write(base, 'vite.config.js', lines(
+        "import { sveltekit } from '@sveltejs/kit/vite';",
+        "import adapter from '@sveltejs/adapter-static';",
+        "export default { plugins: [sveltekit({ adapter: adapter({ fallback: 'index.html' }) })] };"))
+
+
 CASES = {
     'vite': (make_vite, '*', 'vite-ok'),
     'astro': (make_astro, 'about/index.html', 'about-ok'),
     'nextjs': (make_next, 'index.html', 'next-ok'),
     'nuxt': (make_nuxt, 'index.html', 'nuxt-ok'),
+    'angular': (make_angular, '*', 'angular-ok'),
+    'gatsby': (make_gatsby, 'index.html', 'gatsby-ok'),
+    'sveltekit': (make_sveltekit, '*', 'sveltekit-ok'),
+    'sveltekit3': (make_sveltekit3, '*', 'sveltekit-ok'),
 }
 
 
@@ -88,7 +177,7 @@ def main():
             if not found:
                 status = f'FAIL (no file containing {needle!r} under {src})'
             elif name == 'nextjs':
-                leftovers = [n for n in os.listdir(base) if 'h2e' in n or n == 'next.config.mjs']
+                leftovers = [n for n in os.listdir(base) if ('h2e' in n and n != '.h2e-stamp.json') or n == 'next.config.mjs']
                 with open(os.path.join(base, 'next.config.js'), encoding='utf-8') as fh:
                     restored = 'reactStrictMode' in fh.read()
                 if leftovers or not restored:

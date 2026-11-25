@@ -31,10 +31,23 @@ class Job:
         self.cancel_requested = False
         self._procs = []
         self._lock = threading.Lock()
+        self.build_env = {}           # variables from .env files, given to build tools (never logged)
+        self._secrets = []            # values to hide from the log
 
     # -- logging ---------------------------------------------------------
+    def add_secrets(self, values):
+        """Register values that must never appear in the log (replaced by ***)."""
+        with self._lock:
+            self._secrets = sorted({v for v in list(self._secrets) + list(values) if v}, key=len, reverse=True)
+
+    def redact(self, text):
+        for value in self._secrets:
+            if value in text:
+                text = text.replace(value, '***')
+        return text
+
     def log(self, message):
-        text = str(message)
+        text = self.redact(str(message))
         with self._lock:
             for line in text.splitlines() or ['']:
                 self.lines.append(line)
@@ -67,7 +80,7 @@ class Job:
             _kill_tree(proc)
 
     # -- subprocess with streaming output ----------------------------------
-    def run_cmd(self, cmd, cwd=None, env=None, shell=False):
+    def run_cmd(self, cmd, cwd=None, env=None, shell=False, collect=None):
         """Run a command, streaming each output line into the job log.
 
         Returns the exit code. Raises JobCancelled if the job was cancelled.
@@ -86,7 +99,10 @@ class Job:
             self._procs.append(proc)
         try:
             for line in proc.stdout:
-                self.log(line.rstrip('\r\n'))
+                line = self.redact(line.rstrip('\r\n'))
+                if collect is not None:
+                    collect.append(line)
+                self.log(line)
             proc.wait()
         finally:
             with self._lock:
@@ -98,6 +114,27 @@ class Job:
                 pass
         self.check_cancelled()
         return proc.returncode
+
+
+def run(cmd, cwd=None, env=None, shell=False, **_ignored):
+    """Drop-in for ``subprocess.run(..., capture_output=True, text=True)``.
+
+    Inside a job the output streams into the live log and Cancel kills the
+    process tree; outside a job it is a plain captured run. Output (stdout and
+    stderr merged) is returned in ``.stdout``; ``.stderr`` mirrors it so
+    callers that print the error text keep working.
+    """
+    job = current_job()
+    if job is None:
+        flags = subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0
+        res = subprocess.run(cmd, cwd=cwd, env=env, shell=shell, stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT, text=True, encoding='utf-8',
+                             errors='replace', creationflags=flags)
+        return subprocess.CompletedProcess(res.args, res.returncode, res.stdout or '', res.stdout or '')
+    lines = []
+    code = job.run_cmd(cmd, cwd=cwd, env=env, shell=shell, collect=lines)
+    text = chr(10).join(lines)
+    return subprocess.CompletedProcess(cmd, code, text, text)
 
 
 def _kill_tree(proc):

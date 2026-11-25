@@ -100,7 +100,16 @@ class PrepareTests(unittest.TestCase):
             make(d, {'index.html': '<html></html>'})
             plan = recipes.prepare(d, jobs.Job('t'))
             self.assertEqual(plan['kind'], 'static')
-            self.assertEqual(os.path.normpath(plan['source_dir']), os.path.normpath(d))
+            self.assertEqual(os.path.normpath(plan['source_dir']),
+                             os.path.normpath(recipes.long_path(d)))
+
+    def test_long_path_expands_short_names_and_ignores_missing(self):
+        with tempfile.TemporaryDirectory() as d:
+            expanded = recipes.long_path(d)
+            self.assertTrue(os.path.samefile(expanded, d))
+            self.assertNotIn('~', expanded.split(os.sep)[2] if sys.platform == 'win32' else '')
+        missing = os.path.join(d, 'definitely-missing')
+        self.assertEqual(recipes.long_path(missing), missing)
 
     def test_prebuilt_dist_is_used_without_running_npm(self):
         with tempfile.TemporaryDirectory() as d:

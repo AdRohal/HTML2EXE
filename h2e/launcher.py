@@ -10,6 +10,8 @@ static : serve the bundled web build over a local HTTP server (with SPA and
          ``page.html`` fallbacks) and show it in a WebView2 window.
 php    : start a bundled portable PHP built-in server (PHP / Laravel) and show
          it in the same kind of window.
+node   : start a bundled Node.js server (Next.js standalone output with API routes), give it the
+         secrets decrypted in memory, and show it in the same kind of window.
 """
 import base64
 import json
@@ -17,6 +19,7 @@ import json
 LAUNCHER_SOURCE = r'''
 import atexit
 import base64
+import importlib
 import json
 import mimetypes
 import os
@@ -225,6 +228,187 @@ def start_php():
     return url, proc.terminate
 
 
+# ------------------------------------------------------------------ uninstall (installer builds)
+__WINSHELL__
+
+UNINSTALL_KEY = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + CONFIG.get("app_key", "")
+
+
+def _ask(text, default_yes=False):
+    try:
+        flags = 0x24 | (0 if default_yes else 0x100)         # MB_YESNO | MB_ICONQUESTION (| default button No)
+        return ctypes.windll.user32.MessageBoxW(0, text, CONFIG.get("title", "App"), flags) == 6
+    except Exception:
+        return False
+
+
+def _registered_location():
+    """Where Windows believes this app is installed (Apps & features), or None."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, UNINSTALL_KEY) as key:
+            return winreg.QueryValueEx(key, "InstallLocation")[0]
+    except OSError:
+        return None
+
+
+def _delete_script(folders, script_path):
+    """A batch file that removes the folders once this program has exited, retrying while files are in use."""
+    lines = ["@echo off"]
+    for number, folder in enumerate(folders):
+        lines += [
+            "for /l %%i in (1,1,40) do (",
+            '  rmdir /s /q "%s" >nul 2>&1' % folder,
+            '  if not exist "%s" goto done%d' % (folder, number),
+            "  ping -n 2 127.0.0.1 >nul",
+            ")",
+            ":done%d" % number,
+        ]
+    lines.append('(goto) 2>nul & del "%~f0"')
+    with open(script_path, "w", encoding="utf-8") as fh:
+        fh.write("\r\n".join(lines) + "\r\n")
+
+
+def uninstall(quiet=False, install_dir=None, ask=None, spawn=None):
+    """Remove the installed app: shortcuts, Apps & features entry and (after exit) its folder. Returns an exit code."""
+    import winreg
+    ask = ask or _ask
+    spawn = spawn or subprocess.Popen
+    title = CONFIG.get("title", "App")
+    install_dir = os.path.abspath(install_dir or os.path.dirname(os.path.abspath(sys.executable)))
+    registered = _registered_location()
+    # Safety: only ever delete the folder Windows has registered for this app (never "wherever this exe happens to be").
+    if not registered or os.path.normcase(os.path.abspath(registered)) != os.path.normcase(install_dir) \
+            or os.path.dirname(install_dir) == install_dir:
+        if not quiet:
+            fatal("This copy of %s is not the installed one, so it will not remove anything. "
+                  "Use Apps & features in Windows settings." % title)
+        return 1
+    if not quiet and not ask("Remove %s from this computer?" % title, True):
+        return 0
+    for folder in (desktop_dir(), start_menu_dir()):
+        try:
+            os.remove(os.path.join(folder, title + ".lnk"))
+        except OSError:
+            pass
+    try:
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, UNINSTALL_KEY)
+    except OSError:
+        pass
+    doomed = [install_dir]
+    data_dir = os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), CONFIG.get("app_id", "H2EApp"))
+    if not quiet and os.path.isdir(data_dir) and ask("Also delete the saved data and settings of %s?" % title, False):
+        doomed.append(data_dir)
+    script = os.path.join(os.environ.get("TEMP", install_dir), CONFIG.get("app_key", "app") + "-uninstall.cmd")
+    _delete_script(doomed, script)
+    spawn(["cmd", "/c", script], creationflags=0x08000000 | 0x00000200, close_fds=True)
+    return 0
+
+
+# ------------------------------------------------------------------- node mode
+START_ERROR = ""
+NOWIN = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+
+def _kill_tree(proc):
+    try:
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True, creationflags=NOWIN)
+    except Exception:
+        pass
+
+
+def _parse_env(text):
+    values = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        if line.startswith("export "):
+            line = line[7:]
+        key, _, value = line.partition("=")
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        values[key.strip()] = value
+    return values
+
+
+def _bundled_env():
+    """Decrypt the secrets bundled at build time. They only ever exist in memory and in the server's environment."""
+    if not CONFIG.get("has_secrets"):
+        return {}
+    with open(os.path.join(BASE_DIR, "_secrets", "secrets.bin"), "rb") as fh:
+        blob = fh.read()
+    if blob[:4] != b"H2ES" or blob[4] != 1:
+        raise ValueError("unknown format")
+    share = base64.b64decode(CONFIG["secret_share"])
+    other, nonce, ciphertext = blob[5:37], blob[37:49], blob[49:]
+    key = bytes(a ^ b for a, b in zip(other, share))
+    aead = importlib.import_module("cryptography.hazmat.primitives.ciphers.aead")
+    aad = (CONFIG["app_id"] + ":" + CONFIG["build_id"]).encode("utf-8")
+    try:
+        data = aead.AESGCM(key).decrypt(nonce, ciphertext, aad)
+    except Exception:
+        raise ValueError("the data was modified or does not belong to this build")
+    return json.loads(data.decode("utf-8"))
+
+
+def _user_env(data_dir):
+    """Optional .env the user keeps in the app's data folder; it overrides the bundled values."""
+    path = os.path.join(data_dir, ".env")
+    if CONFIG.get("user_env") and os.path.isfile(path):
+        with open(path, encoding="utf-8-sig", errors="replace") as fh:
+            return _parse_env(fh.read())
+    return {}
+
+
+def start_node():
+    global START_ERROR
+    node = os.path.join(BASE_DIR, "_node", "node.exe")
+    entry = os.path.join(PROJECT_DIR, CONFIG.get("node_entry") or "server.js")
+    data_dir = app_data_dir()
+    env = dict(os.environ)
+    try:
+        env.update(_bundled_env())
+    except Exception as exc:
+        START_ERROR = "The app's protected settings could not be read (%s)." % exc
+        return "http://127.0.0.1:1/", (lambda: None)
+    env.update(_user_env(data_dir))
+    port = find_free_port()
+    env.update({"PORT": str(port), "HOSTNAME": "127.0.0.1", "NODE_ENV": "production",
+                "NEXT_TELEMETRY_DISABLED": "1"})
+    log_path = os.path.join(data_dir, "server.log")
+    mode = "wb" if os.path.isfile(log_path) and os.path.getsize(log_path) > 1000000 else "ab"
+    log = open(log_path, mode)
+    proc = subprocess.Popen([node, entry], cwd=os.path.dirname(entry), env=env, stdout=log, stderr=log,
+                            creationflags=NOWIN)
+    _children.append(proc)
+    url = "http://127.0.0.1:%d/" % port
+    from urllib.request import urlopen
+    for _ in range(600):                                   # up to about a minute
+        if proc.poll() is not None:
+            START_ERROR = "The app's server stopped while starting (exit code %s). Details: %s" % (proc.returncode, log_path)
+            break
+        try:
+            urlopen(url, timeout=1).close()
+            break
+        except Exception as exc:
+            if getattr(exc, "code", None):                 # an HTTP error still means it is up
+                break
+            time.sleep(0.1)
+    else:
+        START_ERROR = "The app's server did not answer within a minute. Details: %s" % log_path
+    return url, (lambda: _kill_tree(proc))
+
+
+def fatal(message):
+    try:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(0, message, CONFIG.get("title", "App"), 0x10)
+    except Exception:
+        print(message)
+
+
 # ------------------------------------------------------------------ WebView2
 def webview2_installed():
     if sys.platform != "win32":
@@ -272,7 +456,20 @@ def main():
         elif arg.startswith("--selftest-probe="):
             probes = arg.split("=", 1)[1].split(",")
 
-    url, stop = start_php() if CONFIG.get("mode") == "php" else start_static()
+    if "--uninstall" in args and CONFIG.get("installer"):
+        return uninstall("--quiet" in args)
+
+    mode = CONFIG.get("mode")
+    if mode == "php":
+        url, stop = start_php()
+    elif mode == "node":
+        url, stop = start_node()
+    else:
+        url, stop = start_static()
+    if START_ERROR and not selftest_out:
+        fatal(START_ERROR)
+        stop()
+        return 4
 
     if selftest_out:
         from urllib.error import HTTPError
@@ -289,7 +486,7 @@ def main():
             except Exception as err:
                 results.append({"path": path, "status": 0, "error": str(err)})
         with open(selftest_out, "w", encoding="utf-8") as fh:
-            json.dump({"url": url, "results": results}, fh)
+            json.dump({"url": url, "results": results, "startError": START_ERROR}, fh)
         stop()
         return 0
 
@@ -319,4 +516,5 @@ if __name__ == "__main__":
 def render_launcher(config):
     """Return launcher source with ``config`` (a JSON-able dict) embedded."""
     payload = base64.b64encode(json.dumps(config).encode('utf-8')).decode('ascii')
-    return LAUNCHER_SOURCE.replace('__CONFIG_B64__', payload)
+    from .winshell import SNIPPET
+    return LAUNCHER_SOURCE.replace('__CONFIG_B64__', payload).replace('__WINSHELL__', SNIPPET)
